@@ -1,4 +1,4 @@
-# FB22–CP25 Emission-Line Surface Brightness Modeling Suite
+# CP25 Emission-Line Surface Brightness Modeling Suite
 
 ## Introduction
 
@@ -12,7 +12,7 @@ The suite is composed of two complementary modules:
 **Key Features**:  
 - Self-consistent treatment of **hot wind phase, mixing layers, and cold clouds**.  
 - Incorporates **non-equilibrium ionization** from CHIMES.  
-- Computes SB profiles for emission lines (e.g. H I Lyα, [O III] 5007, O VI 1032).  
+- Computes SB profiles for emission lines (e.g., H I Lyα, [O III] 5007, O VI 1032).  
 - Flexible grid setup via `input_params.py` (star formation rate, ηE, ηM, cloud mass, metallicity, etc.).  
 - Automated execution pipeline (`run.sh`) with logging and error handling.  
 - Outputs include **model solution arrays and emission-line SB arrays**.  
@@ -68,37 +68,45 @@ The pipeline is executed in two stages using `run.sh`:
 All model parameters are set in `input_params.py`:
 
 - **Global settings**:  
-  `master_folder_name`, `folder_name_base`, `num_decimal`  
+  - `master_folder_name` → master folder name for a given set of runs  
+  - `folder_name_base` → base of each folder name for a particular run within a set  
+  - `num_decimal` → number of decimal points for parameter values when saving outputs  
 
-- **Wind parameters**:  
-  `SFR_inputs`, `etaE`, `etaM`, `etaM_grid`, `etaE_grid`, `etaM_cold`, `log_Mcl`, `v_cloud_init`, `r_sonic`, `Z_wind_init`, `Z_cloud_init`, `v_circ0`, `half_opening_angle`  
+- **Wind parameters (FB22 main inputs)**:  
+  - `SFR_inputs` → input star formation rates (in M⊙/yr)  
+  - `etaE` → fixed thermalization efficiency factor value (used when `vary_which_eta = 'etaM'`)  
+  - `etaM` → fixed initial hot-phase mass loading factor (used when `vary_which_eta = 'etaE'`)  
+  - `vary_which_eta` → choose which parameter to vary in grid runs: `'etaM'` or `'etaE'`  
+  - `etaM_grid` → grid of initial hot-phase mass loading factor values (used when `vary_which_eta = 'etaM'`)  
+  - `etaE_grid` → grid of thermalization efficiency factor values (used when `vary_which_eta = 'etaE'`)  
+  - `etaM_cold` → initial cold-phase mass loading factor  
+  - `log_Mcl` → initial cold cloud mass (log10 scale, in M⊙)  
+  - `v_cloud_init` → initial cloud velocity (cm/s)  
+  - `r_sonic` → sonic radius (cm)  
+  - `Z_wind_init` → initial wind metallicity (in units of solar metallicity)  
+  - `Z_cloud_init` → initial cloud metallicity (in units of solar metallicity)  
+  - `v_circ0` → circular velocity of the external isothermal gravitational potential (cm/s)  
+  - `half_opening_angle` → half-opening angle of the spherical symmetric wind (radians)  
+  - `Omwind` → solid angle of the wind, derived from `half_opening_angle`  
 
-- **Cooling/ionization**:  
-  `redshift_ps20`, `eq_or_noneq`, `noneq_time`  
+- **Cooling/ionization parameters**:  
+  - `redshift_ps20` → redshift for the Ploeckinger & Schaye (2020) cooling tables  
+  - `eq_or_noneq` → whether to use equilibrium (`'eq'`) or non-equilibrium (`'noneq'`) CHIMES solutions  
+  - `noneq_time` → if `eq_or_noneq = 'noneq'`, select the time snapshot of the non-equilibrium solution (in Myr)  
 
-- **Emission-line SB**:  
-  `which_lines`, `R_eval_arr`, `z_galaxy`  
-
-Example (from default setup):
-```python
-SFR_inputs = np.arange(5, 101, 5) * Msun / yr
-etaE = 1.0
-etaM = 0.2
-vary_which_eta = 'etaM'
-etaM_grid = np.arange(0.1, 1.01, 0.05)
-which_lines = np.array([b'O  6      1031.91A', b'O  6      1037.62A'])
-R_eval_arr = np.arange(1.01, 100, 0.1)
-z_galaxy = 0.2
-```
+- **Emission-line SB parameters**:  
+  - `which_lines` → list of emission lines to compute surface brightness for (PS20 format, e.g., `b'O  6      1031.91A'`)  
+  - `R_eval_arr` → radii (in units of `r_sonic`) at which to evaluate SB profiles  
+  - `z_galaxy` → redshift of the galaxy for simulating the SB profile 
 
 ---
 
 ## Outputs
 
 - **FB22 (`../fb22_model_outputs`)**:  
-  - Cloud and wind profiles: velocity, density, temperature, metallicity, cloud mass.  
-  - Extra diagnostics: Mach numbers, pressure, overdensity, etc.  
-  - Diagnostic plots saved to `../fb22_model_outputs/fb22_solution_plots`.  
+  - Cloud and wind profiles (stored as `.npy`): velocity, density, temperature, metallicity, cloud mass.  
+  - Extra diagnostics (stored as `.npy`): Mach numbers, pressure, overdensity, etc.  
+  - Diagnostic plots (stored as `.pdf`) saved to `../fb22_model_outputs/fb22_solution_plots`.  
 
 - **CP25 (`../cp25_model_outputs`)**:  
   - Radial SB profiles for specified emission lines.  
