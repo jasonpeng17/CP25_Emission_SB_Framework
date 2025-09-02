@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+logs/
+*.log
+
+# Output directories
+fb22_model_outputs/
+cp25_model_outputs/
+
+# External grids (not tracked, must be obtained separately)
+ps20_grids/
+chen23_grids/
+chimes_grids/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup / temp files
+*.swp
+*.swo
+*~
