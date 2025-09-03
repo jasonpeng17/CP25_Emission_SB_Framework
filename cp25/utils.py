@@ -10,10 +10,17 @@ from scipy import interpolate
 from scipy.interpolate import RectBivariateSpline
 from scipy.interpolate import interp1d
 from pathlib import Path
-import os
+import os, sys
 import glob
+from pathlib import Path
 
 from IPython import embed
+try:
+    HERE = Path(__file__).resolve().parent
+except NameError:
+    HERE = Path.cwd()
+PARENT = HERE.parent
+sys.path.insert(0, str(PARENT))
 from constants import *
 from input_params import *
 
@@ -483,7 +490,7 @@ def phys_star_interp_fb22(etaE, etaM, etaM_cold, log_Mcl, v_c, Zwind, which, mas
 Flux fraction of line emissivities within the TRML (Chen et al. 2023; Peng et al. 2025) 
 """
 # get the flux 5007 fraction grid in the mixing layer (& interpolate it)
-flux_frac_grid_file = "../chen23_grids/flux_fractions_T_hot=1.0e+06_tau=0.10_rho_vx_cosine_grid.npz"
+flux_frac_grid_file = PARENT / "chen23_grids/flux_fractions_T_hot=1.0e+06_tau=0.10_rho_vx_cosine_grid.npz"
 flux_frac_grid_data = np.load(flux_frac_grid_file, allow_pickle=True)
 flux_frac_dict = flux_frac_grid_data['flux'].item()
 log_p_arr = np.log10(flux_frac_grid_data['Ps'])
@@ -500,7 +507,7 @@ for line, flux_frac_arr in flux_frac_dict.items():
 Cooling curve as a function of density, temperature, metallicity (Ploeckinger & Schaye 2020) (assume a certain redshift)
 """
 # define the cooling curve based on Ploeckinger and Schaye 2020
-table_dust1_CR1_G1_shield1 = '../ps20_grids/UVB_dust1_CR1_G1_shield1.hdf5'
+table_dust1_CR1_G1_shield1 = PARENT / "ps20_grids/UVB_dust1_CR1_G1_shield1.hdf5"
 
 # total cooling & heating
 with h5py.File(table_dust1_CR1_G1_shield1, 'r') as f:
@@ -543,7 +550,7 @@ log_heating_curve_func2d = interpolate.RegularGridInterpolator((temperature_bin_
 Cooling emissivity as a function of density, temperature, metallicity (Ploeckinger & Schaye 2020) 
 """
 # ploeckinger & shaye 2020 cooling table for lines
-table_dust1_CR1_G1_shield1_lines = '../ps20_grids/UVB_dust1_CR1_G1_shield1_lines.hdf5'
+table_dust1_CR1_G1_shield1_lines = PARENT / "ps20_grids/UVB_dust1_CR1_G1_shield1_lines.hdf5"
 # define the IDs for different lines
 with h5py.File(table_dust1_CR1_G1_shield1_lines, 'r') as f:
     line_IDs = f['IdentifierLines'][:] # list of emission line ids
@@ -578,7 +585,7 @@ OVI equilibrium and non-equilibrium chemistry solutions based on CHIMES (Riching
 """
 # open the chimes equilibrium and non-equilibrium solutions
 # equilibrium
-file_eq = "../chimes_grids/eqm_table_colibre_z=0.2.hdf5" # TODO: this solution assumes redshift = 0.2
+file_eq = PARENT / "chimes_grids/eqm_table_colibre_z=0.2.hdf5" # TODO: this solution assumes redshift = 0.2
 h5file_eq = h5py.File(file_eq, "r")
 
 T_eq = np.array(h5file_eq["TableBins/Temperatures"]) 
@@ -587,7 +594,7 @@ Z_eq = np.array(h5file_eq["TableBins/Metallicities"])
 abundance_eq = np.array(h5file_eq["Abundances"]) 
 
 # non-equilibrium
-file_neq = "../chimes_grids/grid_noneq_evolution_colibre_1Myr_noTherm_z=0.2.hdf5" # TODO: this solution assumes redshift = 0.2
+file_neq = PARENT / "chimes_grids/grid_noneq_evolution_colibre_1Myr_noTherm_z=0.2.hdf5" # TODO: this solution assumes redshift = 0.2
 h5file_neq = h5py.File(file_neq, "r")
 
 T_neq = np.array(h5file_neq["TableBins/Temperatures"]) 

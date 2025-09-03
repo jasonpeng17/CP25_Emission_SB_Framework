@@ -34,7 +34,7 @@ The suite is composed of two complementary modules:
 To run the models, you must download several large external datasets. 
 We provide them via Google Drive here:  
 👉 [Download Grids from Google Drive](https://drive.google.com/drive/folders/1m2wRyZ6dbtOACDnK1PJaEXcxGoXijNLl?usp=sharing)  
-   - **PS20 cooling/emissivity tables**  
+   - **[Ploeckinger & Schaye (2020)](https://ui.adsabs.harvard.edu/abs/2020MNRAS.497.4857P/abstract) cooling/emissivity tables**  
    - **Chen+23 TRML flux fraction grids**  
    - **CHIMES equilibrium & non-equilibrium outputs**  
 
@@ -111,6 +111,32 @@ All model parameters are set in `input_params.py`:
 - **CP25 (`../cp25_model_outputs`)**:  
   - Radial SB profiles for specified emission lines.  
   - Arrays stored as `.npy` in structured subfolders.  
+
+---
+
+## Post-Processing Utilities (Optional)
+
+Beyond generating wind solutions and emission-line SB profiles, this repository (`../cp25/post_process`) also provides helper routines for analyzing the outputs of FB22 and CP25 models. 
+
+- **`pressure_Mrel_fb22`**  
+  Computes the radial profiles of ram pressure, thermal pressure, and relative Mach number from FB22 solutions:  
+  - `P_r` → thermal pressure of the wind/cloud (in pressure equilibrium)  
+  - `P_ram_r` → ram pressure of the wind on clouds (ρ_w (v_w − v_cl)²)  
+  - `M_rel_r` → relative Mach number ((v_w − v_cl)/c_s,wind)  
+
+- **`extract_ovi_profile`**  
+  Loads the **O VI radial SB profile** from CP25 outputs, combining the λ1031.91 and λ1037.62 Å doublet into a total profile.  
+  Returns:  
+  - `ovi_profile_rkpc` → radial bins in kpc  
+  - `ovi_tot_profile` → summed O VI SB (erg/s/cm²/arcsec²)  
+
+- **`find_rkpc_obs_limit`**  
+  Determines the **largest radius** at which the O VI SB profile falls below an observational SB limit.  
+  - `ram_or_therm` → choose whether to scale SB using ram/thermal pressure (`'ram'` vs `'therm'`).  
+  - `sb_limit` → SB detection threshold (default: 1e−18 erg/s/cm²/arcsec²).  
+  Returns:  
+  - `rkpc_intersect` → radius (kpc) where the profile crosses the threshold  
+  - `intersect_idx` → index of the corresponding radial bin(s)  
 
 ---
 
