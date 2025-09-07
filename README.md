@@ -91,6 +91,7 @@ All model parameters are set in `input_params.py`:
 
 - **Cooling/ionization parameters**:  
   - `redshift_ps20` → redshift for the Ploeckinger & Schaye (2020) cooling tables  
+  - `redshift_chimes` → redshift for the CHIMES solution  
   - `eq_or_noneq` → whether to use equilibrium (`'eq'`) or non-equilibrium (`'noneq'`) CHIMES solutions  
   - `noneq_time` → if `eq_or_noneq = 'noneq'`, select the time snapshot of the non-equilibrium solution (in Myr)  
 

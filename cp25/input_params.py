@@ -27,6 +27,7 @@
 #   - redshift_ps20             (redshift of the PS20 cooling tables)
 #
 # - CHIMES (Richings et al. 2014a,b) main parameters are:
+#   - redshift_chimes           (redshift of the CHIMES grid)
 #   - eq_or_noneq               (whether to import the equilibrium or non-equilibrium solution)
 #   - noneq_time                (if ``eq_or_noneq'' = 'noneq', choose the time snapshot of the non-equilibrium solution)
 
@@ -67,6 +68,7 @@ Omwind = 4 * np.pi * (1.0 - np.cos(half_opening_angle))
 redshift_ps20 = 0.2
 
 # CHIMES parameters
+redshift_chimes = 0.2
 eq_or_noneq = 'noneq'
 noneq_time = 10 # in Myr (currently available options, from 1 to 10 Myr with a timestep of 1 Myr)
 

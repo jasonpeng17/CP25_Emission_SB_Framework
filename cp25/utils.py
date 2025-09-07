@@ -485,6 +485,109 @@ def phys_star_interp_fb22(etaE, etaM, etaM_cold, log_Mcl, v_c, Zwind, which, mas
 
     return x_star_arr, y_arr, y_x_func1d
 
+def available_chimes_redshifts(root=PARENT / "chimes_grids", require_both=True):
+    """
+    Scan the CHIMES grids folder and return the list of available redshifts.
+
+    Parameters
+    ----------
+    root : path-like
+        Directory that contains the CHIMES HDF5 files.
+    require_both : bool
+        If True, only return redshifts for which BOTH the equilibrium file
+        (eqm_table_colibre_z=*.hdf5) and the non-equilibrium file
+        (grid_noneq_evolution_colibre_1Myr_noTherm_z=*.hdf5) are present.
+        If False, return the union (any of the two file types).
+
+    Returns
+    -------
+    list[float]
+        Sorted list of redshifts found (as floats). Example: [0.2, 2.0, 6.0]
+    """
+    root = Path(root)
+    if not root.exists():
+        return []
+
+    eq_pat  = re.compile(r"^eqm_table_colibre_z=(\d+(?:\.\d+)?)\.hdf5$")
+    neq_pat = re.compile(r"^grid_noneq_evolution_colibre_1Myr_noTherm_z=(\d+(?:\.\d+)?)\.hdf5$")
+
+    eq_z, neq_z = set(), set()
+    for name in os.listdir(root):
+        m = eq_pat.match(name)
+        if m:
+            eq_z.add(float(m.group(1)))
+            continue
+        m = neq_pat.match(name)
+        if m:
+            neq_z.add(float(m.group(1)))
+
+    zs = (eq_z & neq_z) if require_both else (eq_z | neq_z)
+    return sorted(zs)
+
+
+def validate_chimes_redshift(redshift_chimes, root=PARENT / "chimes_grids", require_both=True):
+    """
+    Ensure `redshift_chimes` matches an available grid; raise ValueError otherwise.
+
+    Parameters
+    ----------
+    redshift_chimes : float
+        Desired CHIMES redshift parameter.
+    root : path-like
+        Directory with CHIMES HDF5 files.
+    require_both : bool
+        If True, require both eq and non-eq files to exist for the redshift.
+
+    Returns
+    -------
+    float
+        The validated redshift rounded to one decimal (to match filename format).
+
+    Raises
+    ------
+    ValueError
+        If no grids are found or the requested redshift is not available.
+    """
+    # Filenames are formatted with one decimal (e.g., z=0.2, 2.0, 6.0)
+    z_req = float(f"{redshift_chimes:.1f}")
+    zs = available_chimes_redshifts(root=root, require_both=require_both)
+
+    if not zs:
+        raise ValueError(f"No CHIMES grids found in {Path(root).resolve()}.")
+
+    if z_req not in zs:
+        nearest = min(zs, key=lambda z: abs(z - z_req))
+        avail_str = ", ".join(f"{z:.1f}" for z in zs)
+        raise ValueError(
+            f"CHIMES grids not found for z={z_req:.1f}. "
+            f"Available redshifts: {avail_str}. "
+            f"Closest available is z={nearest:.1f}."
+        )
+    return z_req
+
+
+def get_chimes_grid_paths(redshift_chimes, root=PARENT / "chimes_grids"):
+    """
+    Return Path objects for the eq and non-eq CHIMES HDF5 files at a given redshift.
+
+    Parameters
+    ----------
+    redshift_chimes : float
+        Desired redshift (will be rounded to one decimal to match filenames).
+    root : path-like
+        CHIMES grids directory.
+
+    Returns
+    -------
+    (Path, Path)
+        (eq_path, neq_path) for the selected redshift.
+    """
+    z = validate_chimes_redshift(redshift_chimes, root=root, require_both=True)
+    root = Path(root)
+    eq  = root / f"eqm_table_colibre_z={z:.1f}.hdf5"
+    neq = root / f"grid_noneq_evolution_colibre_1Myr_noTherm_z={z:.1f}.hdf5"
+    return eq, neq
+
 
 """
 Flux fraction of line emissivities within the TRML (Chen et al. 2023; Peng et al. 2025) 
@@ -584,24 +687,28 @@ for line_id in emission_line_ids:
 OVI equilibrium and non-equilibrium chemistry solutions based on CHIMES (Richings et al. 2014a,b)
 """
 # open the chimes equilibrium and non-equilibrium solutions
+file_eq, file_neq = get_chimes_grid_paths(redshift_chimes, root=PARENT / "chimes_grids")
 # equilibrium
-file_eq = PARENT / "chimes_grids/eqm_table_colibre_z=0.2.hdf5" # TODO: this solution assumes redshift = 0.2
-h5file_eq = h5py.File(file_eq, "r")
-
+h5file_eq  = h5py.File(file_eq, "r")
 T_eq = np.array(h5file_eq["TableBins/Temperatures"]) 
 n_eq = np.array(h5file_eq["TableBins/Densities"]) 
 Z_eq = np.array(h5file_eq["TableBins/Metallicities"])         
 abundance_eq = np.array(h5file_eq["Abundances"]) 
 
 # non-equilibrium
-file_neq = PARENT / "chimes_grids/grid_noneq_evolution_colibre_1Myr_noTherm_z=0.2.hdf5" # TODO: this solution assumes redshift = 0.2
 h5file_neq = h5py.File(file_neq, "r")
-
 T_neq = np.array(h5file_neq["TableBins/Temperatures"]) 
 n_neq = np.array(h5file_neq["TableBins/Densities"]) 
 Z_neq = np.array(h5file_neq["TableBins/Metallicities"])         
 time_array_neq = np.array(h5file_neq["TimeArray_seconds"]) 
 abundance_neq = np.array(h5file_neq["AbundanceEvolution"]) 
+
+
+
+
+
+
+
 
 
 
