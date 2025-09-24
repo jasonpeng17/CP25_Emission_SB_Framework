@@ -55,7 +55,6 @@ If you prefer to **recompute the TRML flux fractions** for your own set of emiss
      - Calls `chen23_solve_trml.plot_solution_given_mdot(...)` to get a TRML solution.  
      - Converts to physical units and computes **dF_cool/dlogT**, per‑line **d f_line/dlogT**, integrated **surface brightness**, and the **flux fraction** = ∫(d f_line/dlogT)/∫(dF_cool/dlogT).  
      - Saves per‑run CSVs in `flux_fraction_dicts_T_hot=<...>_tau=<...>/` and a figure in `flux_fraction_plots_T_hot=<...>_tau=<...>/`.
-   - Includes best‑fit prescriptions for `f_nu` and `Prandtl` from Chen+23 (`best_fit_fnu`, `best_fit_Pr`) if you pass `None`.
 
 3. **`save_flux_fractions.py`** — *Aggregate CSVs into a single grid file*  
    - Scans the `flux_fraction_dicts_T_hot=<...>_tau=<...>/` directory, parses filenames to locate the **(P/k_B, Mach_rel)** indices, and stacks results by line.  
@@ -69,10 +68,12 @@ If you prefer to **recompute the TRML flux fractions** for your own set of emiss
 These are small `.npz` files derived from PS20 that provide a **pressure‑fixed cooling curve** with keys: `Ts` (K), `edot` (erg cm⁻³ s⁻¹), `P` (K cm⁻³), `norm`. The example loop in `chen23_grid_flux_fraction.py` expects files spanning `P/k_B ≈ 10^{0.5}–10^{9}` in steps of 0.5 dex.
 
 **Where to put the final grid:**  
-Copy the aggregated file to your project’s grids folder so the main pipeline can find it (the default loader in `utils.py` expects this naming pattern):
+Copy the aggregated file to your project’s grids folder so the main pipeline can find it (the default loader in `utils.py` expects a naming pattern like the following):
 ```
 ../chen23_grids/flux_fractions_T_hot=1.0e+06_tau=0.10_rho_vx_cosine_grid.npz
 ```
+
+---
 
 ## Running
 
