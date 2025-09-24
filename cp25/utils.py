@@ -588,23 +588,60 @@ def get_chimes_grid_paths(redshift_chimes, root=PARENT / "chimes_grids"):
     neq = root / f"grid_noneq_evolution_colibre_1Myr_noTherm_z={z:.1f}.hdf5"
     return eq, neq
 
-
 """
-Flux fraction of line emissivities within the TRML (Chen et al. 2023; Peng et al. 2025) 
-"""
-# get the flux 5007 fraction grid in the mixing layer (& interpolate it)
-flux_frac_grid_file = PARENT / "chen23_grids/flux_fractions_T_hot=1.0e+06_tau=0.10_rho_vx_cosine_grid.npz"
-flux_frac_grid_data = np.load(flux_frac_grid_file, allow_pickle=True)
-flux_frac_dict = flux_frac_grid_data['flux'].item()
-log_p_arr = np.log10(flux_frac_grid_data['Ps'])
-mach_rel_arr = flux_frac_grid_data['Mrels']
-tau = flux_frac_grid_data['tau']
-flux_frac_line_func2d = {}
-# Loop through each emission line to interpolate
-for line, flux_frac_arr in flux_frac_dict.items():
-    log_flux_frac_line = np.log10(flux_frac_arr)
-    flux_frac_line_func2d[eval(line)] = RectBivariateSpline(log_p_arr, mach_rel_arr, log_flux_frac_line, kx=1, ky=1)
+Flux fraction of line emissivities within the TRML (Chen et al. 2023; Peng et al. 2025).
+This version loads *all* available T_hot grids in `chen23_grids/` and builds
+interpolators for each one.
 
+Creates:
+    - `flux_frac_line_func2d_by_Thot`: dict[float T_hot] -> dict[line_id] -> RectBivariateSpline
+    - `available_Thot_chen23`: sorted list of T_hot values present on disk
+"""
+grids_dir = PARENT / "chen23_grids"
+_fname_re = re.compile(r"^flux_fractions_T_hot=([0-9.eE+\-]+)_tau=([0-9.]+)_rho_vx_cosine_grid\.npz$")
+flux_frac_line_func2d_by_Thot = {}
+available_Thot_chen23 = []
+
+for fpath in sorted(grids_dir.glob("flux_fractions_T_hot=*_*_rho_vx_cosine_grid.npz")):
+    m = _fname_re.match(fpath.name)
+    if not m:
+        continue
+    T_hot_str, tau_str = m.groups()
+    T_hot = float(T_hot_str)
+    tau_val = float(tau_str)
+    data = np.load(str(fpath), allow_pickle=True)
+    flux_dict = data["flux"].item() 
+    log_p_arr = np.log10(data["Ps"])
+    mach_rel_arr = data["Mrels"]
+    line_to_spline = {}
+    for line_key, frac_arr in flux_dict.items():
+        log_frac = np.log10(frac_arr)
+        line_to_spline[eval(line_key)] = RectBivariateSpline(log_p_arr, mach_rel_arr, log_frac, kx=1, ky=1)
+    flux_frac_line_func2d_by_Thot[T_hot] = line_to_spline
+    available_Thot_chen23.append(T_hot)
+available_Thot_chen23 = sorted(set(available_Thot_chen23))
+
+def get_flux_frac_splines_for_Thot(T_hot_query, require_exact=False):
+    """
+    Return the {line_id -> RectBivariateSpline} mapping for a given T_hot.
+
+    If `require_exact` is False (default), returns the *nearest* available T_hot.
+    Raise KeyError if nothing is available.
+    """
+    if not flux_frac_line_func2d_by_Thot:
+        raise KeyError("No T_hot grids loaded from 'chen23_grids/'.")
+    if T_hot_query in flux_frac_line_func2d_by_Thot:
+        return flux_frac_line_func2d_by_Thot[T_hot_query], T_hot_query
+
+    if require_exact:
+        raise KeyError(
+            f"T_hot={T_hot_query:g} not found. "
+            f"Available: {', '.join(f'{z:g}' for z in available_Thot_chen23)}"
+        )
+
+    # nearest T_hot
+    nearest = min(available_Thot_chen23, key=lambda z: abs(z - T_hot_query))
+    return flux_frac_line_func2d_by_Thot[nearest], nearest
 
 """
 Cooling curve as a function of density, temperature, metallicity (Ploeckinger & Schaye 2020) (assume a certain redshift)
@@ -684,7 +721,7 @@ for line_id in emission_line_ids:
 
 
 """
-OVI equilibrium and non-equilibrium chemistry solutions based on CHIMES (Richings et al. 2014a,b)
+Equilibrium and non-equilibrium chemistry solutions based on CHIMES (Richings et al. 2014a,b)
 """
 # open the chimes equilibrium and non-equilibrium solutions
 file_eq, file_neq = get_chimes_grid_paths(redshift_chimes, root=PARENT / "chimes_grids")

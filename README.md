@@ -7,7 +7,7 @@ This repository provides a **Python-based pipeline** for computing **emission-li
 The suite is composed of two complementary modules:  
 
 * **FB22 Model Grid (`fb22_model_grid.py`)**: Implements and extends the multiphase wind model of [Fielding & Bryan (2022)](https://ui.adsabs.harvard.edu/abs/2022ApJ...924...82F/abstract). It produces the radial structure of hot winds and cold clouds, including velocity, density, pressure, metallicity, and cloud growth/loss.  
-* **CP25 SB Model Grid (`cp25_sb_model_grid.py`)**: Builds on FB22 outputs and computes **emission-line SB profiles** using equilibrium and/or non-equilibrium ionization fractions from **CHIMES** and line emissivities from **PS20 cooling/emissivity tables**.  
+* **CP25 SB Model Grid (`cp25_sb_model_grid.py`)**: Builds on FB22 outputs and computes **emission-line SB profiles** using TRML solutions from **[Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract)**, the flux fractions of each emission line within the TRML from **[Peng et al. (2025)](https://ui.adsabs.harvard.edu/abs/2025ApJ...981..171P/abstract)**, line emissivity grids from **[Ploeckinger & Schaye (2020)](https://ui.adsabs.harvard.edu/abs/2020MNRAS.497.4857P/abstract) cooling/emissivity tables**, and equilibrium and/or non-equilibrium ionization fractions from **[CHIMES](https://ui.adsabs.harvard.edu/abs/2014MNRAS.440.3349R/exportcitation)**.  
 
 **Key Features**:  
 - Self-consistent treatment of **hot wind phase, mixing layers, and cold clouds**.  
@@ -24,7 +24,7 @@ The suite is composed of two complementary modules:
 1. Clone or download the repository.  
 2. Ensure you have a Python environment (conda/venv) with the required packages:
    ```
-   numpy, scipy, matplotlib, astropy, h5py, pandas, cmasher
+   numpy, scipy, matplotlib, astropy, h5py, pandas, cmasher, ipython
    ```
 3. Activate your environment before running scripts:
    ```bash
@@ -34,11 +34,45 @@ The suite is composed of two complementary modules:
 To run the models, you must download several large external datasets. 
 We provide them via Google Drive here:  
 👉 [Download Grids from Google Drive](https://drive.google.com/drive/folders/1m2wRyZ6dbtOACDnK1PJaEXcxGoXijNLl?usp=sharing)  
-   - **[Ploeckinger & Schaye (2020)](https://ui.adsabs.harvard.edu/abs/2020MNRAS.497.4857P/abstract) cooling/emissivity tables**  
+   - **Ploeckinger & Schaye (2020) cooling/emissivity tables**  
    - **Chen+23 TRML flux fraction grids**  
    - **CHIMES equilibrium & non-equilibrium outputs**  
 
 ---
+
+### Generating your own Chen+23 TRML flux‑fraction grids (Optional)
+
+If you prefer to **recompute the TRML flux fractions** for your own set of emission lines and parameters (e.g., different hot-phase temperatures, relative mach numbers, and/or pressures), use the helper scripts in `cp25/trml_scripts`:
+
+1. **`chen23_solve_trml.py`** — *Solve a single TRML structure (Chen et al. 2023)*  
+   - Integrates the 1D TRML ODEs with `solve_ivp(Radau)` to find the **eigenvalue mass flux** (`ṁ/ṁ_crit`) that yields a physical solution.  
+   - Uses a **pressure‑dependent cooling curve** (normalized file, see below) to compute heating/cooling terms and returns the full solution `sol` plus derived scalings.  
+   - Outputs: a 4‑panel PDF showing profiles (`T, P, v_z, v_x`) and energy/phase distributions in `result_plots_T_hot=<...>_tau=<...>/`.
+
+2. **`chen23_grid_flux_fraction.py`** — *Build a grid of line‑flux fractions over (P/k_B, Mach_rel)*  
+   - Reads PS20 emissivity tables (`UVB_dust1_CR1_G1_shield1_lines.hdf5`) and selects your **emission_line_ids** list.  
+   - For each **constant‑pressure cooling curve** in `ps20_cooling_curves_const_P/` and each `(mach_rel, tau)` pair, it:
+     - Calls `chen23_solve_trml.plot_solution_given_mdot(...)` to get a TRML solution.  
+     - Converts to physical units and computes **dF_cool/dlogT**, per‑line **d f_line/dlogT**, integrated **surface brightness**, and the **flux fraction** = ∫(d f_line/dlogT)/∫(dF_cool/dlogT).  
+     - Saves per‑run CSVs in `flux_fraction_dicts_T_hot=<...>_tau=<...>/` and a figure in `flux_fraction_plots_T_hot=<...>_tau=<...>/`.
+   - Includes best‑fit prescriptions for `f_nu` and `Prandtl` from Chen+23 (`best_fit_fnu`, `best_fit_Pr`) if you pass `None`.
+
+3. **`save_flux_fractions.py`** — *Aggregate CSVs into a single grid file*  
+   - Scans the `flux_fraction_dicts_T_hot=<...>_tau=<...>/` directory, parses filenames to locate the **(P/k_B, Mach_rel)** indices, and stacks results by line.  
+   - Produces a compact NumPy archive:  
+     ```
+     flux_fractions_T_hot=<...>_tau=<...>_rho_vx_cosine_grid.npz
+     ```
+     containing `flux` (dict of 2D arrays), `Ps` (pressure grid), `Mrels` (Mach grid), and `tau`.
+
+**Cooling‑curve inputs (`ps20_cooling_curves_const_P/`):**  
+These are small `.npz` files derived from PS20 that provide a **pressure‑fixed cooling curve** with keys: `Ts` (K), `edot` (erg cm⁻³ s⁻¹), `P` (K cm⁻³), `norm`. The example loop in `chen23_grid_flux_fraction.py` expects files spanning `P/k_B ≈ 10^{0.5}–10^{9}` in steps of 0.5 dex.
+
+**Where to put the final grid:**  
+Copy the aggregated file to your project’s grids folder so the main pipeline can find it (the default loader in `utils.py` expects this naming pattern):
+```
+../chen23_grids/flux_fractions_T_hot=1.0e+06_tau=0.10_rho_vx_cosine_grid.npz
+```
 
 ## Running
 
@@ -144,7 +178,9 @@ Beyond generating wind solutions and emission-line SB profiles, this repository 
 ## Citation
 
 If you use this code, please cite:  
-- Chen & Peng et al. (2025, in prep.)  
+- Chen & Peng et al. (2025, in prep.)
+- [Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract)  
+- [Peng et al. (2025)](https://ui.adsabs.harvard.edu/abs/2025ApJ...981..171P/abstract)  
 
 ---
 

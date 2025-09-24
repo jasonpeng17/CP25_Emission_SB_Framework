@@ -7,9 +7,15 @@ __pycache__/
 logs/
 *.log
 
-# Output directories
+# Output directories or files
 fb22_model_outputs/
 cp25_model_outputs/
+cp25/trml_scripts/result_plots_*/
+cp25/trml_scripts/flux_fraction_dicts_*/
+cp25/trml_scripts/flux_fraction_plots_*/
+cp25/trml_scripts/ps20_cooling_curves_const_P/
+cp25/trml_scripts/*.npz
+cp25/trml_scripts/*.pdf
 
 # External grids (not tracked, must be obtained separately)
 ps20_grids/
