@@ -465,31 +465,16 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
             method='Radau') # default method is 'RK45'
         return sol
 
-    # we perform our bisection to find the eigenvalue of the mass flux mdot here
-    # our first guess for mdot is the maximum possible value mdot_crit, which corresponds to a vz_initial that is equal to c_s,hot
-    # mdot_over_mdot_crit = 1.0
-    # factor = 0.9
-    # final_gradient = find_final_gradient(mdot_over_mdot_crit)
-    # # we record the sign of the final T gradient of this solution, decrase our guess of mdot by 10%, and repeat this process
-    # positive = 1
-    # # we repeat the above procedure until the final T gradient changes sign
-    # while positive > 0:
-    #     mdot_over_mdot_crit *= factor
-    #     next_final_gradient = find_final_gradient(mdot_over_mdot_crit)
-    #     print(next_final_gradient)
-    #     positive = next_final_gradient*final_gradient
-    #     final_gradient = next_final_gradient
-
     # Initialize the iteration counter
     iter_count = 0
     # We perform our bisection to find the eigenvalue of the mass flux mdot here
     # Our first guess for mdot is the maximum possible value mdot_crit, 
     # which corresponds to a vz_initial that is equal to c_s,hot
     mdot_over_mdot_crit = 1.0
-    factor = 0.1
+    factor = 0.1 # this is appropriate for most solutions when mach_rel <~ 2
     final_gradient = find_final_gradient(mdot_over_mdot_crit)
     # We record the sign of the final T gradient of this solution, 
-    # decrease our guess of mdot by 10%, and repeat this process
+    # decrease our guess of mdot by factor*100%, and repeat this process
     positive = 1
     # Save all mdot_over_mdot_crit values from these iterations
     mdot_over_mdot_crit_lst = []
