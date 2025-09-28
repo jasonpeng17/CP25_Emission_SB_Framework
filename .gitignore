@@ -15,6 +15,7 @@ cp25/trml_scripts/flux_fraction_dicts_*/
 cp25/trml_scripts/flux_fraction_plots_*/
 cp25/trml_scripts/*.npz
 cp25/trml_scripts/*.pdf
+cp25/deprecated/
 
 # External grids (not tracked, must be obtained separately)
 ps20_grids/

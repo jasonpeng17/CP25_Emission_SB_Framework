@@ -73,14 +73,15 @@ eq_or_noneq = 'noneq'
 noneq_time = 10 # in Myr (currently available options, from 1 to 10 Myr with a timestep of 1 Myr)
 
 # SB parameters
-# currently available emission lines
-# [b'H  1      1025.72A', b'H  1      1215.67A', b'H  1      6562.81A',
-#  b'H  1      949.743A', b'H  1      972.537A', b'C  3      977.020A',
-#  b'O  2      3726.03A', b'O  2      3728.81A', b'O  3      5006.84A',
-#  b'O  6      1031.91A', b'O  6      1037.62A', b'Si 3      1206.50A']
+# currently available emission lines 
+# [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6300.30A', b'S  2      4068.60A', b'Si 3      1206.50A', 
+#  b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', b'O  3      4363.21A', 
+#  b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
+# (or run chen23 grids by yourself; 
+#  see https://github.com/jasonpeng17/CP25_Emission_SB_Framework/tree/main?tab=readme-ov-file#generating-your-own-chen23-trml-fluxfraction-grids-optional)
 which_lines = np.array([b'O  6      1031.91A', b'O  6      1037.62A']) 
 R_eval_arr = np.arange(1.01, 100, 0.1) # in units of r_sonic
-z_galaxy = 0.2 
+z_galaxy = 0.235 
 
 
 

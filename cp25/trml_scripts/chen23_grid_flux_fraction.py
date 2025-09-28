@@ -50,6 +50,30 @@ emission_line_ids = [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6
                      b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', b'O  3      4363.21A', 
                      b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
 
+ROMANS = ["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII"]
+def int_to_roman(n: int) -> str:
+    if n < 0 or n >= len(ROMANS):
+        raise ValueError(f"Cannot convert {n} to Roman numeral within supported range.")
+    return ROMANS[n]
+
+def make_emission_label(line_id):
+    """Minimal: bytes/str CHIMES ID -> 'SPECIES λA'; keeps 'Blnd' as 'Blnd'."""
+    s = line_id.decode("ascii") if isinstance(line_id, (bytes, bytearray)) else str(line_id)
+    s = s.strip().replace("A", "")
+    parts = s.split()
+
+    # Blends: keep as 'Blnd λA'
+    if parts[0].lower().startswith("blnd"):
+        w = float(parts[-1])
+        return f"Blnd {w:.2f}A"
+
+    # Regular lines: 'Elem Ion Wavelength'
+    elem, ion_str, wave_str = parts[0], parts[1], parts[-1]
+    species = f"{elem}{int_to_roman(int(ion_str))}"
+    w = float(wave_str)
+    w_key = int(round(w))
+    return f"{species} {w_key:.2f}A"
+
 def best_fit_fnu(mach_rel = 0.75, chi = 100, tau = 10**(-1.5)):
     '''
     Best-fitting fnu of rho-vx cosine profile based on Equation (45) in Chen et al. (2023).
@@ -238,8 +262,10 @@ def return_flux_fraction(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 0.01
     plt.setp(ax1.get_xmajorticklabels(), visible=False)
 
     # enter a list of emission line labels corresponding to the emission lines that was selected
-    emission_line_labels = ['HI 6562.81A', 'HI 4861.33A', 'OI 6300.00A', 'SII 4068.60A', 'SiIII 1206.50A', 'OII 3729.00A', 'SiIV 1397.00A', 
-                            'OIII 5007.00A', 'OIII 4958.91 A', 'OIII 4363.21A', 'CIV 1549.00A', 'OVI 1031.91A', 'OVI 1037.62A', 'NII 6583.45A']
+    # emission_line_labels = []
+    # for line_id in emission_line_ids:
+    #     emission_line_labels.append(make_emission_label(line_id))
+    emission_line_labels = list(df_line_dlogT_int.keys())
 
     emission_line_colors = cmr.take_cmap_colors('cmr.tropical', len(emission_line_labels), cmap_range=(0.1, 0.9), return_fmt='hex')
 
@@ -269,8 +295,7 @@ def return_flux_fraction(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 0.01
         ax4.scatter(i, surface_brightness, marker='o', color=emission_line_colors[i])
 
     ax4.xaxis.set_ticks(np.arange(len(emission_line_labels)))
-    # ax4.xaxis.set_ticklabels(emission_line_labels, rotation=90)
-    ax4.xaxis.set_ticklabels(list(df_line_dlogT_int.keys()), rotation=90)
+    ax4.xaxis.set_ticklabels(emission_line_labels, rotation=90)
     ax4.set_ylabel(r'SB $[{\rm erg}$ ${\rm cm}^{-2}$ ${\rm s}^{-1}$ ${\rm sr}^{-1}]$', fontsize=8)
     ax4.set_yscale('log')
 

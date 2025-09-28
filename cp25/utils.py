@@ -13,6 +13,7 @@ from pathlib import Path
 import os, sys
 import glob
 from pathlib import Path
+from collections import defaultdict
 
 from IPython import embed
 try:
@@ -599,49 +600,82 @@ Creates:
 """
 grids_dir = PARENT / "chen23_grids"
 _fname_re = re.compile(r"^flux_fractions_T_hot=([0-9.eE+\-]+)_tau=([0-9.]+)_rho_vx_cosine_grid\.npz$")
-flux_frac_line_func2d_by_Thot = {}
+line_to_Thot_to_logfrac = defaultdict(dict)
 available_Thot_chen23 = []
+Ps_master = None
+Mrels_master = None
 
 for fpath in sorted(grids_dir.glob("flux_fractions_T_hot=*_*_rho_vx_cosine_grid.npz")):
     m = _fname_re.match(fpath.name)
     if not m:
         continue
-    T_hot_str, tau_str = m.groups()
-    T_hot = float(T_hot_str)
-    tau_val = float(tau_str)
     data = np.load(str(fpath), allow_pickle=True)
     flux_dict = data["flux"].item() 
-    log_p_arr = np.log10(data["Ps"])
-    mach_rel_arr = data["Mrels"]
-    line_to_spline = {}
+    Ps = data["Ps"]
+    Mrels = data["Mrels"]
+    T_hot = float(data["Thot"])
+
+    if Ps_master is None:
+        Ps_master = np.asarray(Ps)
+        Mrels_master = np.asarray(Mrels)
+    else:
+        if Ps_master.shape != np.asarray(Ps).shape or not np.allclose(Ps_master, Ps):
+            raise ValueError(f"Inconsistent Ps grid in {fpath.name}")
+        if Mrels_master.shape != np.asarray(Mrels).shape or not np.allclose(Mrels_master, Mrels):
+            raise ValueError(f"Inconsistent Mrels grid in {fpath.name}")
+
     for line_key, frac_arr in flux_dict.items():
         log_frac = np.log10(frac_arr)
-        line_to_spline[eval(line_key)] = RectBivariateSpline(log_p_arr, mach_rel_arr, log_frac, kx=1, ky=1)
-    flux_frac_line_func2d_by_Thot[T_hot] = line_to_spline
+        line_to_Thot_to_logfrac[eval(line_key)][T_hot] = np.asarray(log_frac)
     available_Thot_chen23.append(T_hot)
+
 available_Thot_chen23 = sorted(set(available_Thot_chen23))
+logT_master = np.log10(np.array(available_Thot_chen23, dtype=float))
+logP_master = np.log10(Ps_master)
+Mrels_master = np.asarray(Mrels_master)
 
-def get_flux_frac_splines_for_Thot(T_hot_query, require_exact=False):
+# Build 3D cubes and interpolators per line
+flux_frac_interp3d = {}   # line_id -> RegularGridInterpolator over (logP, Mrel, logT)
+for line_id, Thot_map in line_to_Thot_to_logfrac.items():
+    # Ensure we have all T_hot slices; if not, clip by using nearest along T (build by nearest fill)
+    cube = np.empty((logP_master.size, Mrels_master.size, logT_master.size), dtype=float)
+
+    for k, T_hot in enumerate(available_Thot_chen23):
+        try:
+            slab = Thot_map[T_hot]
+        except KeyError:
+            continue
+        cube[:, :, k] = slab
+
+    # Build linear interpolator on a regular grid — returns log10(frac)
+    flux_frac_interp3d[line_id] = interpolate.RegularGridInterpolator(
+        (logP_master, Mrels_master, logT_master),
+        cube,
+        method="linear",
+        bounds_error=False,   # we will clip manually to nearest edge
+        fill_value=None       # (unused because we clamp inputs)
+    )
+
+# Helpers to evaluate with nearest-edge behavior outside the grid
+def _clip_to_grid(logP, Mrel, logT):
+    lp = np.clip(np.asarray(logP), logP_master.min(), logP_master.max())
+    mr = np.clip(np.asarray(Mrel), Mrels_master.min(), Mrels_master.max())
+    lt = np.clip(np.asarray(logT), logT_master.min(), logT_master.max())
+    # Broadcast to common shape
+    lp, mr, lt = np.broadcast_arrays(lp, mr, lt)
+    pts = np.stack([lp, mr, lt], axis=-1)  
+    return pts
+
+def eval_flux_frac_log(line_id, logP, Mrel, logT_hot):
     """
-    Return the {line_id -> RectBivariateSpline} mapping for a given T_hot.
-
-    If `require_exact` is False (default), returns the *nearest* available T_hot.
-    Raise KeyError if nothing is available.
+    Evaluate log10(flux fraction) at (logP, Mrel,logT_hot).
+    Inputs outside the tabulated ranges are clipped to nearest grid values.
     """
-    if not flux_frac_line_func2d_by_Thot:
-        raise KeyError("No T_hot grids loaded from 'chen23_grids/'.")
-    if T_hot_query in flux_frac_line_func2d_by_Thot:
-        return flux_frac_line_func2d_by_Thot[T_hot_query], T_hot_query
-
-    if require_exact:
-        raise KeyError(
-            f"T_hot={T_hot_query:g} not found. "
-            f"Available: {', '.join(f'{z:g}' for z in available_Thot_chen23)}"
-        )
-
-    # nearest T_hot
-    nearest = min(available_Thot_chen23, key=lambda z: abs(z - T_hot_query))
-    return flux_frac_line_func2d_by_Thot[nearest], nearest
+    if line_id not in flux_frac_interp3d:
+        raise KeyError(f"Line key not found in TRML flux fractions: {line_id!r}")
+    interp = flux_frac_interp3d[line_id]
+    pts = _clip_to_grid(logP, Mrel, logT_hot)
+    return interp(pts)
 
 """
 Cooling curve as a function of density, temperature, metallicity (Ploeckinger & Schaye 2020) (assume a certain redshift)

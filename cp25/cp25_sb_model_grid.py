@@ -158,9 +158,8 @@ def calc_surface_brightness(R_eval, xi, R, etaE, etaM, etaM_cold, log_Mcl, v_c, 
                 return np.abs(emis_line_cooling) * r / np.sqrt(r**2 - Rprime**2)
 
             elif which_phase == 'mix':
-                # returns the *nearest* (in T_hot) available flux fraction grids
-                flux_frac_line_func2d, used_Thot = get_flux_frac_splines_for_Thot(T_w_r) 
-                flux_frac = 10**(flux_frac_line_func2d[line_key](np.log10(P_r / kB), M_rel, grid = False))
+                # returns the interpolated line flux fraction at certain pressure, mach_rel, and T_hot
+                flux_frac = 10**eval_flux_frac_log(line_key, np.log10(P_r / kB), M_rel, np.log10(T_w_r))
                 emis_line_mixing = emis_mixing * flux_frac
                 return np.abs(emis_line_mixing) * r / np.sqrt(r**2 - Rprime**2)
         
