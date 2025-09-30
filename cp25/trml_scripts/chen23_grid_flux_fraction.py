@@ -47,8 +47,8 @@ IDs = np.array(f['IdentifierLines']) # list of emission line ids
 
 # enter a list of emission line ids. For a list of all emission lines, please refer to Table 9 of Ploeckinger & Schaye (2020)
 emission_line_ids = [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6300.30A', b'S  2      4068.60A', b'Si 3      1206.50A', 
-                     b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', b'O  3      4363.21A', 
-                     b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
+                     b'O  2      3726.03A', b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', 
+                     b'O  3      4363.21A', b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
 
 ROMANS = ["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII"]
 def int_to_roman(n: int) -> str:

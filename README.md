@@ -1,10 +1,10 @@
-# CP25 Emission-Line Surface Brightness Modeling Suite
+# WInterPhase: A theory–observation interface for modeling multiphase galactic winds.
 
 ## Introduction
 
-This repository provides a **Python-based pipeline** for computing **emission-line surface brightness (SB) profiles** by combining the multiphase galactic wind model developed by [Fielding & Bryan (2022)](https://ui.adsabs.harvard.edu/abs/2022ApJ...924...82F/abstract) with the mixing layer model developed by [Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract).  
+**WInterPhase** is a **Python-based framework** designed to model the observable signatures of **multiphase galactic winds**. It combines the multiphase galactic wind model developed by [Fielding & Bryan (2022)](https://ui.adsabs.harvard.edu/abs/2022ApJ...924...82F/abstract) with the turbulent radiative mixing layer model of [Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract) to compute **emission-line surface brightness (SB) profiles** across different gas phases.  
 
-The suite is composed of two complementary modules:  
+The current framework is composed of two complementary modules:  
 
 * **FB22 Model Grid (`fb22_model_grid.py`)**: Implements and extends the multiphase wind model of [Fielding & Bryan (2022)](https://ui.adsabs.harvard.edu/abs/2022ApJ...924...82F/abstract). It produces the radial structure of hot winds and cold clouds, including velocity, density, pressure, metallicity, and cloud growth/loss.  
 * **CP25 SB Model Grid (`cp25_sb_model_grid.py`)**: Builds on FB22 outputs and computes **emission-line SB profiles** using TRML solutions from **[Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract)**, the flux fractions of each emission line within the TRML from **[Peng et al. (2025)](https://ui.adsabs.harvard.edu/abs/2025ApJ...981..171P/abstract)**, line emissivity grids from **[Ploeckinger & Schaye (2020)](https://ui.adsabs.harvard.edu/abs/2020MNRAS.497.4857P/abstract) cooling/emissivity tables**, and equilibrium and/or non-equilibrium ionization fractions from **[CHIMES](https://ui.adsabs.harvard.edu/abs/2014MNRAS.440.3349R/exportcitation)**.  
@@ -49,7 +49,7 @@ If you prefer to **recompute the TRML flux fractions** for your own set of emiss
    - Uses a **pressure‑dependent cooling curve** (normalized file, see below) to compute heating/cooling terms and returns the full solution `sol` plus derived scalings.  
    - Outputs: a 4‑panel PDF showing profiles (`T, P, v_z, v_x`) and energy/phase distributions in `result_plots_T_hot=<...>_tau=<...>/`.
 
-2. **`chen23_grid_flux_fraction.py`** — *Build a grid of line‑flux fractions over (P/k_B, Mach_rel)*  
+2. **`chen23_grid_flux_fraction.py`** — *Build a grid of line‑flux fractions over (P/k_B, Mach_rel, T_hot)*  
    - Reads PS20 emissivity tables (`UVB_dust1_CR1_G1_shield1_lines.hdf5`) and selects your **emission_line_ids** list.  
    - For each **constant‑pressure cooling curve** in `ps20_cooling_curves_const_P/` and each `(mach_rel, tau)` pair, it:
      - Calls `chen23_solve_trml.plot_solution_given_mdot(...)` to get a TRML solution.  
@@ -188,6 +188,14 @@ If you use this code, please cite:
 ## Contact
 
 Developed and maintained by [Zixuan Peng](mailto:zixuanpeng@ucsb.edu) and [Zirui Chen](mailto:ziruichen@ucsb.edu). For bug reports, questions, or feature requests, please contact us via email.
+
+---
+
+## Future Work
+We will extend this framework to predict **absorption-line diagnostics** by calculating **ion column densities** as functions of radius and impact parameter. This will enable direct comparisons with both **“down-the-barrel” galaxy spectra** and **quasar sightline absorption-line studies** of galactic winds. By jointly modeling emission-line SB profiles/ratios and absorption-line column densities, **WInterPhase** will provide stronger constraints on:  
+- **Outflow rates** — mass, momentum, and energy fluxes  
+- **Cold-cloud properties** — e.g., $\eta_{\rm M,cold}$ and $M_{\rm cloud}$  
+This dual-emission and absorption approach makes **WInterPhase** a comprehensive tool for bridging theory and observation in the study of galactic winds.  
 
 
 
