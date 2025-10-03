@@ -42,7 +42,10 @@ We provide them via Google Drive here:
 
 ### Generating your own Chen+23 TRML flux‑fraction grids (Optional)
 
-If you prefer to **recompute the TRML flux fractions** for your own set of emission lines and parameters (e.g., different hot-phase temperatures, relative mach numbers, and/or pressures), use the helper scripts in `cp25/trml_scripts`:
+If you prefer to **recompute the TRML flux fractions** for your own set of emission lines and parameters (e.g., different hot-phase temperatures, relative mach numbers, and/or pressures), use the helper scripts in `cp25/trml_scripts`. In practice, you just need to run the **`chen23_grid_flux_fraction.py`** script to calculate a grid of flux fractions with different combinations of pressure, relative Mach number, and hot-phase temperature. Then, you can use the **`save_flux_fractions.py`** file to aggregate the saved CSVs of flux fractions (each CSV for a single combination of pressure, relative Mach number, and hot-phase temperature) into a single grid file. Finally, you should move the aggregated file to your project’s grids folder so the main pipeline can find it (the default loader in `utils.py` expects a naming pattern like the following):
+```
+../chen23_grids/flux_fractions_T_hot=1.0e+06_tau=0.10_rho_vx_cosine_grid.npz
+```
 
 1. **`chen23_solve_trml.py`** — *Solve a single TRML structure (Chen et al. 2023)*  
    - Integrates the 1D TRML ODEs with `solve_ivp(Radau)` to find the **eigenvalue mass flux** (`ṁ/ṁ_crit`) that yields a physical solution.  
@@ -51,13 +54,13 @@ If you prefer to **recompute the TRML flux fractions** for your own set of emiss
 
 2. **`chen23_grid_flux_fraction.py`** — *Build a grid of line‑flux fractions over (P/k_B, Mach_rel, T_hot)*  
    - Reads PS20 emissivity tables (`UVB_dust1_CR1_G1_shield1_lines.hdf5`) and selects your **emission_line_ids** list.  
-   - For each **constant‑pressure cooling curve** in `ps20_cooling_curves_const_P/` and each `(mach_rel, tau)` pair, it:
+   - For each **constant‑pressure cooling curve** in `ps20_cooling_curves_const_P/` and each `(P/k_B, Mach_rel, T_hot)` pair, it:
      - Calls `chen23_solve_trml.plot_solution_given_mdot(...)` to get a TRML solution.  
      - Converts to physical units and computes **dF_cool/dlogT**, per‑line **d f_line/dlogT**, integrated **surface brightness**, and the **flux fraction** = ∫(d f_line/dlogT)/∫(dF_cool/dlogT).  
      - Saves per‑run CSVs in `flux_fraction_dicts_T_hot=<...>_tau=<...>/` and a figure in `flux_fraction_plots_T_hot=<...>_tau=<...>/`.
 
 3. **`save_flux_fractions.py`** — *Aggregate CSVs into a single grid file*  
-   - Scans the `flux_fraction_dicts_T_hot=<...>_tau=<...>/` directory, parses filenames to locate the **(P/k_B, Mach_rel)** indices, and stacks results by line.  
+   - Scans the `flux_fraction_dicts_T_hot=<...>_tau=<...>/` directory, parses filenames to locate the **(P/k_B, Mach_rel, T_hot)** indices, and stacks results by line.  
    - Produces a compact NumPy archive:  
      ```
      flux_fractions_T_hot=<...>_tau=<...>_rho_vx_cosine_grid.npz
@@ -66,12 +69,6 @@ If you prefer to **recompute the TRML flux fractions** for your own set of emiss
 
 **Cooling‑curve inputs (`ps20_cooling_curves_const_P/`):**  
 These are small `.npz` files derived from PS20 that provide a **pressure‑fixed cooling curve** with keys: `Ts` (K), `edot` (erg cm⁻³ s⁻¹), `P` (K cm⁻³), `norm`. The example loop in `chen23_grid_flux_fraction.py` expects files spanning `P/k_B ≈ 10^{0.5}–10^{9}` in steps of 0.5 dex.
-
-**Where to put the final grid:**  
-Copy the aggregated file to your project’s grids folder so the main pipeline can find it (the default loader in `utils.py` expects a naming pattern like the following):
-```
-../chen23_grids/flux_fractions_T_hot=1.0e+06_tau=0.10_rho_vx_cosine_grid.npz
-```
 
 ---
 
@@ -195,6 +192,7 @@ Developed and maintained by [Zixuan Peng](mailto:zixuanpeng@ucsb.edu) and [Zirui
 We will extend this framework to predict **absorption-line diagnostics** by calculating **ion column densities** as functions of radius and impact parameter. This will enable direct comparisons with both **“down-the-barrel” galaxy spectra** and **quasar sightline absorption-line studies** of galactic winds. By jointly modeling emission-line SB profiles/ratios and absorption-line column densities, **WInterPhase** will provide stronger constraints on:  
 - **Outflow rates** — mass, momentum, and energy fluxes  
 - **Cold-cloud properties** — e.g., $\eta_{\rm M,cold}$ and $M_{\rm cloud}$  
+
 This dual-emission and absorption approach makes **WInterPhase** a comprehensive tool for bridging theory and observation in the study of galactic winds.  
 
 

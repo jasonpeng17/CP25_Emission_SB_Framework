@@ -329,7 +329,8 @@ if __name__ == "__main__":
     kappa_0 = 1e-3
     # grid parameters 
     mach_rel_arr = np.arange(0.75, 2.25, 0.25) # mach_rel array
-    tau = np.array([10**(-1)]) # tau array
+    # tau array (don't change this value unless you know what you are doing)
+    tau = np.array([10**(-1)]) 
     # Creating a meshgrid
     mach_rel_mesh, tau_mesh = np.meshgrid(mach_rel_arr, tau)
     Prandtl = None 

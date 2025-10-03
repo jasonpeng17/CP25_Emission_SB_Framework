@@ -336,9 +336,28 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
             
             return_value = 10**log_return_value
             
-            #return_value *= np.where(T<(1+epsilon_T), 1, (T/(1+epsilon_T))**(-5))
-            
             return return_value
+
+            # T_mix_in_K = np.sqrt(T_cold_in_K * T_hot_in_K)
+
+            # f_edot_at_Tcold = f_edot(T_cold_in_K)
+            # f_edot_at_Thot = f_edot(T_hot_in_K)
+            # f_edot_at_Tmix = f_edot(T_cold_in_K) / 10
+            
+            # power_law_slope_ctom = (np.log10(f_edot_at_Tmix) - np.log10(f_edot_at_Tcold)) / \
+            #                        (np.log10(T_mix_in_K) - np.log10(T_cold_in_K))
+
+            # power_law_slope_mtoh = (np.log10(f_edot_at_Thot) - np.log10(f_edot_at_Tmix)) / \
+            #                        (np.log10(T_hot_in_K) - np.log10(T_mix_in_K))
+            
+            # if T >= (T_mix_in_K / T_hot_in_K):
+            #     log_return_value = np.log10(f_edot_at_Tmix) + power_law_slope_mtoh * (np.log10(T*T_hot_in_K) - np.log10(T_mix_in_K))
+            # else:
+            #     log_return_value = np.log10(f_edot_at_Tcold) + power_law_slope_ctom * (np.log10(T*T_mix_in_K) - np.log10(T_cold_in_K))
+
+            # return_value = 10**log_return_value
+            
+            # return return_value
 
         def edot_cool_double_equilibrium(T):
             Edot_cool = f_edot(T_hot_in_K*T)
@@ -353,7 +372,7 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
 
     # define some constants that are used in the integration
     # note that we need initial T gradient to be small and non-zero to give the solution a "nudge" away from the equilibrium at the hot phase temperature
-    dT_dz_initial       = -1e-6
+    dT_dz_initial       = -1e-6 # default -1e-6
     dvz_dz_initial      = 0
 
     beta_lo             = -2
@@ -386,6 +405,11 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
         return T/T_hot - 1.001
 
     bump.terminal = True
+
+    def length(z,w,modit): # terminate when z > 1
+        return z - 1.001
+
+    length.terminal = True 
 
     # define an integrator that will later be taken as an input to scipy's solve_ivp function.
     # we are solving 4 coupled differential equations (1st & 2nd derivatives of T and vz), so we need expressions of those as outputs of the integrator function
@@ -434,34 +458,51 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
         mdot                = mdot_crit * mdot_over_mdot_crit
         T_initial           = T_hot
         vz_initial          = mdot/rho_hot
-        dT_dz_initial       = -1e-6
+        dT_dz_initial       = -1e-6 # default -1e-6
         dvz_dz_initial      = 1e-6
         initial_conditions  = [dT_dz_initial, T_initial, dvz_dz_initial, vz_initial]
         stop_distance       = 10**4
         sol = solve_ivp(integrator, [0, stop_distance], initial_conditions, 
             dense_output=True, 
-            events=[dip, bump],
+            events=[dip, bump, length],
             rtol=3e-14, atol=[1e-9,1e-11,1e-9,1e-11],
             # rtol=3e-10, atol=[1e-5,1e-7,1e-5,1e-7],
-            args=[mdot],
+            args=[mdot], 
             method='Radau') # default method is 'RK45'
         return sol.y[0][-1]
+
+    def find_gradient(mdot_over_mdot_crit):
+        mdot                = mdot_crit * mdot_over_mdot_crit
+        T_initial           = T_hot
+        vz_initial          = mdot/rho_hot
+        dT_dz_initial       = -1e-6 # default -1e-6
+        dvz_dz_initial      = 1e-6
+        initial_conditions  = [dT_dz_initial, T_initial, dvz_dz_initial, vz_initial]
+        stop_distance       = 10**4
+        sol = solve_ivp(integrator, [0, stop_distance], initial_conditions, 
+            dense_output=True, 
+            events=[dip, bump, length],
+            rtol=3e-14, atol=[1e-9,1e-11,1e-9,1e-11],
+            # rtol=3e-10, atol=[1e-5,1e-7,1e-5,1e-7],
+            args=[mdot], 
+            method='Radau') # default method is 'RK45'
+        return sol.y[0]
 
     # similar to the find_final_gradient function, but this function returns the solution object from the solve_ivp function, which is useful for plotting
     def calculate_solution(mdot_over_mdot_crit):
         mdot                = mdot_crit * mdot_over_mdot_crit
         T_initial           = T_hot
         vz_initial          = mdot/rho_hot
-        dT_dz_initial       = -1e-6
+        dT_dz_initial       = -1e-6 # default -1e-6
         dvz_dz_initial      = 1e-6
         initial_conditions  = [dT_dz_initial, T_initial, dvz_dz_initial, vz_initial]
         stop_distance       = 10**4
         sol = solve_ivp(integrator, [0, stop_distance], initial_conditions, 
             dense_output=True, 
-            events=[dip, bump],
+            events=[dip, bump, length],
             rtol=3e-14, atol=[1e-9,1e-11,1e-9,1e-11],
             # rtol=3e-10, atol=[1e-5,1e-7,1e-5,1e-7],
-            args=[mdot],
+            args=[mdot], 
             method='Radau') # default method is 'RK45'
         return sol
 
@@ -471,8 +512,13 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
     # Our first guess for mdot is the maximum possible value mdot_crit, 
     # which corresponds to a vz_initial that is equal to c_s,hot
     mdot_over_mdot_crit = 1.0
-    factor = 0.1 # this is appropriate for most solutions when mach_rel <~ 2
     final_gradient = find_final_gradient(mdot_over_mdot_crit)
+    all_gradients = find_gradient(mdot_over_mdot_crit)
+    if np.max(all_gradients) > 0:
+        factor = 1.1 
+    else:
+        factor = 0.1 
+        
     # We record the sign of the final T gradient of this solution, 
     # decrease our guess of mdot by factor*100%, and repeat this process
     positive = 1
@@ -481,17 +527,19 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
     dT_dz_lst = []
     # We repeat the above procedure until the final T gradient changes sign
     # or until the maximum number of iterations is reached
-    while positive > 0 and iter_count < max_iter:
+    while (positive > 0) and (iter_count < max_iter):
         # current mdot_over_mdot_crit
         mdot_over_mdot_crit *= factor
         mdot_over_mdot_crit_lst.append(mdot_over_mdot_crit)
         # current dT_dz
         next_final_gradient = find_final_gradient(mdot_over_mdot_crit)
+        all_gradients = find_gradient(mdot_over_mdot_crit)
         dT_dz_lst.append(next_final_gradient)
         print(f"Iteration {iter_count+1}, mdot_over_mdot_crit: {mdot_over_mdot_crit}, dT/dz: {next_final_gradient}")
         positive = next_final_gradient * final_gradient
         final_gradient = next_final_gradient
         iter_count += 1
+
     # Output the final gradient after exiting the loop
     print(f"Final dT/dz after {iter_count} iterations: {final_gradient:.4f}")
     if iter_count >= max_iter:
@@ -502,7 +550,9 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
     # given this information, we can use scipy's root finder optimize.root_scalar to find the eigenvalue of mdot (mdot that corresponds to final T gradient=0)
     # note that we set rtol and xtol to be very small here so that we can resolve the eigenvalue as accurately as possible
     if iter_count < max_iter:
-        target = scipy.optimize.root_scalar(find_final_gradient, bracket = [mdot_over_mdot_crit,mdot_over_mdot_crit/factor], xtol=1e-14, rtol=1e-14)
+        target = scipy.optimize.root_scalar(find_final_gradient, 
+                                            bracket = [mdot_over_mdot_crit,mdot_over_mdot_crit/factor], 
+                                            xtol=1e-14, rtol=1e-14)
         sol = calculate_solution(target.root)
     else:
         sol = calculate_solution(mdot_over_mdot_crit)
