@@ -2,7 +2,7 @@
 # Run FB22 model grid first, then CP25 surface brightness grid.
 # Expectation: you've already activated the desired conda/venv in this shell.
 # Usage:
-#   ./run.sh [--logdir logs] [--dry-run] [--skip-fb22] [--skip-cp25]
+#   ./run.sh [--logdir logs] [--dry-run] [--skip-fb22] [--skip-sb]
 
 set -Eeuo pipefail
 
@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
     --logdir)     LOGDIR="$2"; shift 2;;
     --dry-run|--dryrun) DRYRUN=1; shift;;
     --skip-fb22)  SKIP_FB22=1; shift;;
-    --skip-cp25)  SKIP_CP25=1; shift;;
+    --skip-sb)  SKIP_SB=1; shift;;
     -h|--help)    sed -n '1,25p' "$0"; exit 0;;
     *) echo "Unknown arg: $1" >&2; exit 1;;
   esac
@@ -58,7 +58,7 @@ run_step() {
 
 # Sanity checks: scripts exist
 [[ -f fb22_model_grid.py ]] || { echo "Missing fb22_model_grid.py" >&2; exit 1; }
-[[ -f cp25_sb_model_grid.py ]] || { echo "Missing cp25_sb_model_grid.py" >&2; exit 1; }
+[[ -f sb_model_grid.py ]] || { echo "Missing sb_model_grid.py" >&2; exit 1; }
 
 START_ALL=$(ts)
 
@@ -67,7 +67,7 @@ if [[ "$SKIP_FB22" -eq 0 ]]; then
 fi
 
 if [[ "$SKIP_CP25" -eq 0 ]]; then
-  run_step "cp25_sb_model_grid" python cp25_sb_model_grid.py
+  run_step "sb_model_grid" python sb_model_grid.py
 fi
 
 echo ">>> All steps finished. Started at: $START_ALL ; Ended at: $(ts)"

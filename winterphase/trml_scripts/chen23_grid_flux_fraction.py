@@ -45,11 +45,6 @@ Z_bins = np.array(f['TableBins']['MetallicityBins']) # metallicity, given in log
 z_bins = np.array(f['TableBins']['RedshiftBins']) # redshift
 IDs = np.array(f['IdentifierLines']) # list of emission line ids
 
-# enter a list of emission line ids. For a list of all emission lines, please refer to Table 9 of Ploeckinger & Schaye (2020)
-emission_line_ids = [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6300.30A', b'S  2      4068.60A', b'Si 3      1206.50A', 
-                     b'O  2      3726.03A', b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', 
-                     b'O  3      4363.21A', b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
-
 ROMANS = ["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII"]
 def int_to_roman(n: int) -> str:
     if n < 0 or n >= len(ROMANS):
@@ -338,6 +333,11 @@ if __name__ == "__main__":
     # creating the maximum iteration number to find mdot_crit
     max_iter = 10
 
+    # enter a list of emission line ids. For a list of all emission lines, please refer to Table 9 of Ploeckinger & Schaye (2020)
+    emission_line_ids = [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6300.30A', b'S  2      4068.60A', b'Si 3      1206.50A', 
+                         b'O  2      3726.03A', b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', 
+                         b'O  3      4363.21A', b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
+
     # Assuming mach_rel_mesh and tau_mesh are your meshgrid arrays
     for i in range(mach_rel_mesh.shape[0]):
         for j in range(mach_rel_mesh.shape[1]):
@@ -346,7 +346,7 @@ if __name__ == "__main__":
             tau = tau_mesh[i, j]
             # get the cooling curves at constant pressures based on PS20 
             # current P/kb value varies from 10**(0.5) to 10**(9) cm-3 K
-            norm_cooling_curve_dir = 'ps20_cooling_curves_const_P'
+            norm_cooling_curve_dir = 'ps20_cooling_curves_const_P/test'
             cooling_curve_files = sorted(os.listdir(norm_cooling_curve_dir))
             for cooling_curve in cooling_curve_files:
                 if ".npz" in cooling_curve:

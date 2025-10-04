@@ -231,7 +231,7 @@ if __name__ == "__main__":
     shell_dr = np.diff(R_eval_arr, prepend=0)
     shell_dr_kpc = shell_dr / kpc
 
-    def run_cp25_sb_model(etaE_val, etaM_val, SFR_input):
+    def run_sb_model(etaE_val, etaM_val, SFR_input):
         etaE = etaE_val
         etaM = etaM_val
 
@@ -267,7 +267,7 @@ if __name__ == "__main__":
             sb_lines[line] = SB_eval_arcsec 
 
         # Save
-        base_root = "../cp25_model_outputs"
+        base_root = "../sb_model_outputs"
         tag = make_tag(etaE, etaM, etaM_cold, log_Mcl, v_c_km_per_s, Z_wind_init_solar, num_decimal)
         # append noneq label if needed
         if eq_or_noneq == 'noneq':
@@ -283,10 +283,10 @@ if __name__ == "__main__":
     for SFR_input in SFR_inputs_Msun_yr:
         if vary_which_eta == 'etaM':
             for etaM_val in etaM_grid:
-                run_cp25_sb_model(etaE, etaM_val, SFR_input)
+                run_sb_model(etaE, etaM_val, SFR_input)
         elif vary_which_eta == 'etaE':
             for etaE_val in etaE_grid:
-                run_cp25_sb_model(etaE_val, etaM, SFR_input)
+                run_sb_model(etaE_val, etaM, SFR_input)
         else:
             raise ValueError("vary_which_eta must be 'etaM' or 'etaE'.")
 

@@ -342,7 +342,7 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
 
             # f_edot_at_Tcold = f_edot(T_cold_in_K)
             # f_edot_at_Thot = f_edot(T_hot_in_K)
-            # f_edot_at_Tmix = f_edot(T_cold_in_K) / 10
+            # f_edot_at_Tmix = f_edot(T_cold_in_K) / 1000
             
             # power_law_slope_ctom = (np.log10(f_edot_at_Tmix) - np.log10(f_edot_at_Tcold)) / \
             #                        (np.log10(T_mix_in_K) - np.log10(T_cold_in_K))
@@ -518,7 +518,7 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
         factor = 1.1 
     else:
         factor = 0.1 
-        
+
     # We record the sign of the final T gradient of this solution, 
     # decrease our guess of mdot by factor*100%, and repeat this process
     positive = 1
@@ -533,7 +533,6 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
         mdot_over_mdot_crit_lst.append(mdot_over_mdot_crit)
         # current dT_dz
         next_final_gradient = find_final_gradient(mdot_over_mdot_crit)
-        all_gradients = find_gradient(mdot_over_mdot_crit)
         dT_dz_lst.append(next_final_gradient)
         print(f"Iteration {iter_count+1}, mdot_over_mdot_crit: {mdot_over_mdot_crit}, dT/dz: {next_final_gradient}")
         positive = next_final_gradient * final_gradient

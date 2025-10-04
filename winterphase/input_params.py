@@ -75,8 +75,8 @@ noneq_time = 10 # in Myr (currently available options, from 1 to 10 Myr with a t
 # SB parameters
 # currently available emission lines 
 # [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6300.30A', b'S  2      4068.60A', b'Si 3      1206.50A', 
-#  b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', b'O  3      4363.21A', 
-#  b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
+#  b'O  2      3726.03A', b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', 
+#  b'O  3      4363.21A', b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
 # (or run chen23 grids by yourself; 
 #  see https://github.com/jasonpeng17/CP25_Emission_SB_Framework/tree/main?tab=readme-ov-file#generating-your-own-chen23-trml-fluxfraction-grids-optional)
 which_lines = np.array([b'O  6      1031.91A', b'O  6      1037.62A']) 

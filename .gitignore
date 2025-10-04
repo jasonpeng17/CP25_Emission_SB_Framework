@@ -9,13 +9,13 @@ logs/
 
 # Output directories or files
 fb22_model_outputs/
-cp25_model_outputs/
-cp25/trml_scripts/result_plots_*/
-cp25/trml_scripts/flux_fraction_dicts_*/
-cp25/trml_scripts/flux_fraction_plots_*/
-cp25/trml_scripts/*.npz
-cp25/trml_scripts/*.pdf
-cp25/deprecated/
+sb_model_outputs/
+winterphase/trml_scripts/result_plots_*/
+winterphase/trml_scripts/flux_fraction_dicts_*/
+winterphase/trml_scripts/flux_fraction_plots_*/
+winterphase/trml_scripts/*.npz
+winterphase/trml_scripts/*.pdf
+winterphase/deprecated/
 
 # External grids (not tracked, must be obtained separately)
 ps20_grids/
