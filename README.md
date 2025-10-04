@@ -84,14 +84,14 @@ The pipeline is executed in two stages using `run.sh`:
 - `--logdir logs` → directory for log files (default: `logs/`)  
 - `--dry-run` → print commands without running  
 - `--skip-fb22` → skip FB22 grid stage  
-- `--skip-cp25` → skip CP25 SB stage  
+- `--skip-sb` → skip SB stage  
 
 ### Workflow:
 1. **FB22 Stage** (`fb22_model_grid.py`):  
    Generates multiphase wind solutions across the chosen ηE/ηM grid and saves them into `../fb22_model_outputs`.  
 
-2. **CP25 Stage** (`cp25_sb_model_grid.py`):  
-   Uses FB22 outputs + CHIMES/PS20 grids to compute emission-line SB profiles, saved into `../cp25_model_outputs`.  
+2. **SB Stage** (`sb_model_grid.py`):  
+   Uses FB22 outputs + CHIMES/PS20 grids to compute emission-line SB profiles, saved into `../sb_model_outputs`.  
 
 ---
 
@@ -136,12 +136,12 @@ All model parameters are set in `input_params.py`:
 
 ## Outputs
 
-- **FB22 (`../fb22_model_outputs`)**:  
+- **FB22 solutions (`../fb22_model_outputs`)**:  
   - Cloud and wind profiles (stored as `.npy`): velocity, density, temperature, metallicity, cloud mass.  
   - Extra diagnostics (stored as `.npy`): Mach numbers, pressure, overdensity, etc.  
   - Diagnostic plots (stored as `.pdf`) saved to `../fb22_model_outputs/fb22_solution_plots`.  
 
-- **CP25 (`../cp25_model_outputs`)**:  
+- **SB radial profiles (`../sb_model_outputs`)**:  
   - Radial SB profiles for specified emission lines.  
   - Arrays stored as `.npy` in structured subfolders.  
 
@@ -149,7 +149,7 @@ All model parameters are set in `input_params.py`:
 
 ## Post-Processing Utilities (Optional)
 
-Beyond generating wind solutions and emission-line SB profiles, this repository (`../cp25/post_process`) also provides helper routines for analyzing the outputs of FB22 and CP25 models. 
+Beyond generating wind solutions and emission-line SB profiles, this repository (`../cp25/post_process`) also provides helper routines for analyzing the outputs of FB22 and SB models. 
 
 - **`pressure_Mrel_fb22`**  
   Computes the radial profiles of ram pressure, thermal pressure, and relative Mach number from FB22 solutions:  
@@ -158,7 +158,7 @@ Beyond generating wind solutions and emission-line SB profiles, this repository 
   - `M_rel_r` → relative Mach number ((v_w − v_cl)/c_s,wind)  
 
 - **`extract_ovi_profile`**  
-  Loads the **O VI radial SB profile** from CP25 outputs, combining the λ1031.91 and λ1037.62 Å doublet into a total profile.  
+  Loads the **O VI radial SB profile** from SB outputs, combining the λ1031.91 and λ1037.62 Å doublet into a total profile.  
   Returns:  
   - `ovi_profile_rkpc` → radial bins in kpc  
   - `ovi_tot_profile` → summed O VI SB (erg/s/cm²/arcsec²)  
@@ -177,8 +177,8 @@ Beyond generating wind solutions and emission-line SB profiles, this repository 
 
 If you use this code, please cite:  
 - Chen & Peng et al. (2025, in prep.)
-- [Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract)  
 - [Peng et al. (2025)](https://ui.adsabs.harvard.edu/abs/2025ApJ...981..171P/abstract)  
+- [Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract)  
 
 ---
 
