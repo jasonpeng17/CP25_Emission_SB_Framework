@@ -33,8 +33,14 @@
 
 # - Surface Brightness (SB) calculations' main parameters are:
 #   - which_lines               (to derive the SB for which lines, see examples below)
-#   - R_eval_arr                (the radii where to derive the SB, in units of r_sonic)
 #   - z_galaxy                  (the redshift for simulating the SB profile)
+
+# - Column Density (CD) calculations' main parameters are:
+#   - ions_of_interest          (to derive the CD for which ions, see examples below)
+
+# - Run either the SB calculation or the Column Density Calculation
+#   - which_run                 ('SB' or 'CD')
+#   - R_eval_arr                (the radii where to derive the SB, in units of r_sonic)
 ################################################################
 
 import numpy as np
@@ -80,8 +86,20 @@ noneq_time = 10 # in Myr (currently available options, from 1 to 10 Myr with a t
 # (or run chen23 grids by yourself; 
 #  see https://github.com/jasonpeng17/CP25_Emission_SB_Framework/tree/main?tab=readme-ov-file#generating-your-own-chen23-trml-fluxfraction-grids-optional)
 which_lines = np.array([b'O  6      1031.91A', b'O  6      1037.62A']) 
-R_eval_arr = np.arange(1.01, 100, 0.1) # in units of r_sonic
 z_galaxy = 0.235 
+
+# CD parameters
+# list out the ions that you want to plot the ion fraction and column densities of as a dictionary
+# for example, if you are interested in NV and OVI, then the dictionary should look like:
+# ions_of_interest = {'N': [5], 'O':[6]}
+# if you are interested in more than one ion of the same element, simply enter more than one number in the corresponding list
+# for example, if you are interested in OVI and OVII, then the dictionary should look like:
+# ions_of_interest = {'O':[6, 7]}
+ions_of_interest = {'Si':[4]}
+
+# Run which calculation ('SB' or 'CD')
+which_run = 'CD'
+R_eval_arr = np.arange(1.01, 100, 0.1) # in units of r_sonic
 
 
 

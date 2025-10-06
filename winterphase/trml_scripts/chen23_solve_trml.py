@@ -326,38 +326,92 @@ def plot_solution_given_mdot(norm_cooling_curve, mach_rel = 0.75, h = 1, f_nu = 
         #     return 1.5/tau*(Edot_cool-Edot_heat)
 
         #### version 2: ensures T_cold_in_K is 1e4;
-        def Edot_heat(T):
-            f_edot_at_Tcold = f_edot(T_cold_in_K)
-            f_edot_at_Thot = f_edot(T_hot_in_K)
+        # def Edot_heat(T):
+        #     # f_edot_at_Tcold = f_edot(T_cold_in_K)
+        #     # f_edot_at_Thot = f_edot(T_hot_in_K)
             
-            power_law_slope = (np.log10(f_edot_at_Thot) - np.log10(f_edot_at_Tcold)) / (np.log10(T_hot_in_K) - np.log10(T_cold_in_K))
+        #     # power_law_slope = (np.log10(f_edot_at_Thot) - np.log10(f_edot_at_Tcold)) / (np.log10(T_hot_in_K) - np.log10(T_cold_in_K))
             
-            log_return_value = np.log10(f_edot_at_Tcold) + power_law_slope * (np.log10(T*T_hot_in_K) - np.log10(T_cold_in_K))
+        #     # log_return_value = np.log10(f_edot_at_Tcold) + power_law_slope * (np.log10(T*T_hot_in_K) - np.log10(T_cold_in_K))
             
-            return_value = 10**log_return_value
+        #     # return_value = 10**log_return_value
             
-            return return_value
+        #     # return return_value
 
-            # T_mix_in_K = np.sqrt(T_cold_in_K * T_hot_in_K)
+        #     T_mix_in_K = np.sqrt(T_cold_in_K * T_hot_in_K)
 
-            # f_edot_at_Tcold = f_edot(T_cold_in_K)
-            # f_edot_at_Thot = f_edot(T_hot_in_K)
-            # f_edot_at_Tmix = f_edot(T_cold_in_K) / 1000
+        #     f_edot_at_Tcold = f_edot(T_cold_in_K)
+        #     f_edot_at_Thot = f_edot(T_hot_in_K)
+        #     f_edot_at_Tmix = f_edot(T_cold_in_K) / 1000
             
-            # power_law_slope_ctom = (np.log10(f_edot_at_Tmix) - np.log10(f_edot_at_Tcold)) / \
-            #                        (np.log10(T_mix_in_K) - np.log10(T_cold_in_K))
+        #     power_law_slope_ctom = (np.log10(f_edot_at_Tmix) - np.log10(f_edot_at_Tcold)) / \
+        #                            (np.log10(T_mix_in_K) - np.log10(T_cold_in_K))
 
-            # power_law_slope_mtoh = (np.log10(f_edot_at_Thot) - np.log10(f_edot_at_Tmix)) / \
-            #                        (np.log10(T_hot_in_K) - np.log10(T_mix_in_K))
+        #     power_law_slope_mtoh = (np.log10(f_edot_at_Thot) - np.log10(f_edot_at_Tmix)) / \
+        #                            (np.log10(T_hot_in_K) - np.log10(T_mix_in_K))
             
-            # if T >= (T_mix_in_K / T_hot_in_K):
-            #     log_return_value = np.log10(f_edot_at_Tmix) + power_law_slope_mtoh * (np.log10(T*T_hot_in_K) - np.log10(T_mix_in_K))
-            # else:
-            #     log_return_value = np.log10(f_edot_at_Tcold) + power_law_slope_ctom * (np.log10(T*T_mix_in_K) - np.log10(T_cold_in_K))
+        #     if T >= (T_mix_in_K / T_hot_in_K):
+        #         log_return_value = np.log10(f_edot_at_Tmix) + power_law_slope_mtoh * (np.log10(T*T_hot_in_K) - np.log10(T_mix_in_K))
+        #     else:
+        #         log_return_value = np.log10(f_edot_at_Tcold) + power_law_slope_ctom * (np.log10(T*T_mix_in_K) - np.log10(T_cold_in_K))
 
-            # return_value = 10**log_return_value
+        #     return_value = 10**log_return_value
             
-            # return return_value
+        #     return return_value
+
+        def Edot_heat(T, *, eps=1e-3, q=24, delta=0.05, w=0.05):
+            """
+            Cosine-valley inside [T_cold, T_hot]; smooth overshoot outside so Edot_heat > f_edot.
+
+            Parameters
+            ----------
+            T : float or array
+                Dimensionless temperature (T_phys / T_hot_in_K).
+            eps : float
+                Valley depth at the log-midpoint (0<eps<<1).
+            q : int
+                Sharpness of the valley (even integers like 8,12 are sharper).
+            delta : float
+                Max fractional overshoot outside the interval (e.g., 0.05 => 5%).
+            w : float
+                Log-temperature width of the outside ramp (controls smoothness).
+            """
+            T_phys = np.asarray(T, dtype=float) * T_hot_in_K
+
+            result = np.zeros_like(T_phys, dtype=float)
+
+            # Masks
+            in_mask  = (T_phys > T_cold_in_K) & (T_phys < T_hot_in_K)
+            low_mask = (T_phys <= T_cold_in_K)
+            high_mask = (T_phys >= T_hot_in_K)
+
+            # --- Inside: cosine valley g_cos(s) ---
+            if np.any(in_mask):
+                lnTc, lnTh = np.log(T_cold_in_K), np.log(T_hot_in_K)
+                s = (np.log(T_phys[in_mask]) - lnTc) / (lnTh - lnTc)   # s in (0,1)
+                g = eps + (1.0 - eps) * np.abs(np.cos(np.pi * s))**q   # g(0)=g(1)=1, g(0.5)=eps
+                result[in_mask] = f_edot(T_phys[in_mask]) * g
+
+            # --- Outside: smooth overshoot so Edot_heat > f_edot ---
+            if np.any(low_mask):
+                # ramp from 1 at T_cold to (1+delta) as T goes lower
+                dlog = np.maximum(0.0, np.log(T_cold_in_K / np.maximum(T_phys[low_mask], 1e-300)))
+                fac  = 1.0 + delta * (1.0 - np.exp(-(dlog / w)**2))
+                result[low_mask] = f_edot(T_phys[low_mask]) * fac
+
+            if np.any(high_mask):
+                # ramp from 1 at T_hot to (1+delta) as T goes higher
+                dlog = np.maximum(0.0, np.log(np.maximum(T_phys[high_mask], 1e-300) / T_hot_in_K))
+                fac  = 1.0 + delta * (1.0 - np.exp(-(dlog / w)**2))
+                result[high_mask] = f_edot(T_phys[high_mask]) * fac
+
+            # Pin exact endpoints
+            at_cold = np.isclose(T_phys, T_cold_in_K, rtol=0, atol=0)
+            at_hot  = np.isclose(T_phys, T_hot_in_K,  rtol=0, atol=0)
+            if np.any(at_cold): result[at_cold] = f_edot(T_cold_in_K)
+            if np.any(at_hot):  result[at_hot]  = f_edot(T_hot_in_K)
+
+            return result
 
         def edot_cool_double_equilibrium(T):
             Edot_cool = f_edot(T_hot_in_K*T)

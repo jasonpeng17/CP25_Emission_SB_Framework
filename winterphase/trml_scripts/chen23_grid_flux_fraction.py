@@ -346,7 +346,7 @@ if __name__ == "__main__":
             tau = tau_mesh[i, j]
             # get the cooling curves at constant pressures based on PS20 
             # current P/kb value varies from 10**(0.5) to 10**(9) cm-3 K
-            norm_cooling_curve_dir = 'ps20_cooling_curves_const_P/test'
+            norm_cooling_curve_dir = 'ps20_cooling_curves_const_P'
             cooling_curve_files = sorted(os.listdir(norm_cooling_curve_dir))
             for cooling_curve in cooling_curve_files:
                 if ".npz" in cooling_curve:

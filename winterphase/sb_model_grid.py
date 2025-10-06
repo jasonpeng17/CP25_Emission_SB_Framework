@@ -129,8 +129,8 @@ def calc_surface_brightness(R_eval, xi, R, etaE, etaM, etaM_cold, log_Mcl, v_c, 
         Mdot_cloud   = np.where(Mcl_r > M_cloud_min, Mdot_grow - Mdot_loss, 0)
 
         # cloud number density 
-        M_cloud_init = 10**log_Mcl * const.M_sun.cgs.value
-        SFR = M_dot_star * const.M_sun.cgs.value / (3.154e7) # M_sun yr-1
+        M_cloud_init = 10**log_Mcl * Msun
+        SFR = M_dot_star * Msun / yr # M_sun yr-1
         Mdot_cold_init  = etaM_cold * SFR              ## mass flux in cold clouds
         Ndot_cloud_init = Mdot_cold_init / M_cloud_init ## number flux in cold clouds
         # cold_cloud_injection_radial_power   = np.inf

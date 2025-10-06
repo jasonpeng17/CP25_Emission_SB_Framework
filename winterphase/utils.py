@@ -25,6 +25,36 @@ sys.path.insert(0, str(PARENT))
 from constants import *
 from input_params import *
 
+# solar abundances of elements, given as number of atoms per 1 hydrogen atom
+solar_abundance = {
+    'H' : 1.00e+00, 'He': 1.00e-01, 'Li': 2.04e-09,
+    'Be': 2.63e-11, 'B' : 6.17e-10, 'C' : 2.45e-04,
+    'N' : 8.51e-05, 'O' : 4.90e-04, 'F' : 3.02e-08,
+    'Ne': 1.00e-04, 'Na': 2.14e-06, 'Mg': 3.47e-05,
+    'Al': 2.95e-06, 'Si': 3.47e-05, 'P' : 3.20e-07,
+    'S' : 1.84e-05, 'Cl': 1.91e-07, 'Ar': 2.51e-06,
+    'K' : 1.32e-07, 'Ca': 2.29e-06, 'Sc': 1.48e-09,
+    'Ti': 1.05e-07, 'V' : 1.00e-08, 'Cr': 4.68e-07,
+    'Mn': 2.88e-07, 'Fe': 2.82e-05, 'Co': 8.32e-08,
+    'Ni': 1.78e-06, 'Cu': 1.62e-08, 'Zn': 3.98e-08}
+# calculate the number density of H using the total number density and fraction of H
+total_ion_count = 0
+for i in solar_abundance:
+    total_ion_count += solar_abundance[i]
+
+# atomic mass of elements in amu
+atomic_mass = {
+    'H' : 1.00794,   'He': 4.002602,  'Li': 6.941,
+    'Be': 9.012182,  'B' : 10.811,    'C' : 12.0107,
+    'N' : 14.0067,   'O' : 15.9994,   'F' : 18.9984032,
+    'Ne': 20.1797,   'Na': 22.989770, 'Mg': 24.3050,
+    'Al': 26.981538, 'Si': 28.0855,   'P' : 30.973761,
+    'S' : 32.065,    'Cl': 35.453,    'Ar': 39.948,
+    'K' : 39.0983,   'Ca': 40.078,    'Sc': 44.955910,
+    'Ti': 47.867,    'V' : 50.9415,   'Cr': 51.9961,
+    'Mn': 54.938049, 'Fe': 55.845,    'Co': 58.933200,
+    'Ni': 58.6934,   'Cu': 63.546,    'Zn': 65.409}
+
 
 """
 CHIMES species dictionary. This dictionary maps the species names to their position in the full CHIMES abundance array. 
@@ -238,17 +268,24 @@ def species_index(chimes_dict, key: str) -> int:
     return chimes_dict[key]
 
 def build_ion_fraction_interpolators(line_id: bytes,
+                                     elem: str,
+                                     ion_n: int,
                                      chimes_dict: dict,
                                      neq_times_seconds=(1 * Myr, 10 * Myr)):
     """
     Given a line_id (bytes), return a dict with:
       - 'species_key': e.g. 'OVI'
+      - 'elem': e.g. 'O'
+      - 'ion_n': e.g. 6
       - 'eq': RegularGridInterpolator for equilibrium ion fraction
       - 'neq': dict mapping chosen time (seconds) -> RegularGridInterpolator for ion fraction
     For equilibrium, CHIMES stores log10 abundances.
     For non-equilibrium, CHIMES stores linear abundances over time.
     """
-    elem, ion_n, sp_key = parse_emission_id(line_id)
+    if line_id:
+        elem, ion_n, sp_key = parse_emission_id(line_id)
+    else:
+        sp_key = f"{elem}{int_to_roman(ion_n)}"
 
     # Which species index for the *ion of interest*?
     sp_idx = species_index(chimes_dict, sp_key)
@@ -590,74 +627,122 @@ def get_chimes_grid_paths(redshift_chimes, root=PARENT / "chimes_grids"):
     return eq, neq
 
 """
-Flux fraction of line emissivities within the TRML (Chen et al. 2023; Peng et al. 2025).
+Flux fraction of line emissivities & column density of absorption lines within the TRML (Chen et al. 2023; Peng et al. 2025).
 This version loads *all* available T_hot grids in `chen23_grids/` and builds
 interpolators for each one.
-
-Creates:
-    - `flux_frac_line_func2d_by_Thot`: dict[float T_hot] -> dict[line_id] -> RectBivariateSpline
-    - `available_Thot_chen23`: sorted list of T_hot values present on disk
 """
 grids_dir = PARENT / "chen23_grids"
-_fname_re = re.compile(r"^flux_fractions_T_hot=([0-9.eE+\-]+)_tau=([0-9.]+)_rho_vx_cosine_grid\.npz$")
-line_to_Thot_to_logfrac = defaultdict(dict)
-available_Thot_chen23 = []
-Ps_master = None
-Mrels_master = None
 
-for fpath in sorted(grids_dir.glob("flux_fractions_T_hot=*_*_rho_vx_cosine_grid.npz")):
-    m = _fname_re.match(fpath.name)
-    if not m:
-        continue
-    data = np.load(str(fpath), allow_pickle=True)
-    flux_dict = data["flux"].item() 
-    Ps = data["Ps"]
-    Mrels = data["Mrels"]
-    T_hot = float(data["Thot"])
+def return_interp3d(which = 'flux_frac'):
+    if which not in ('flux_frac', 'col_den'):
+        raise ValueError("which must be 'flux_frac' or 'col_den'")
 
-    if Ps_master is None:
-        Ps_master = np.asarray(Ps)
-        Mrels_master = np.asarray(Mrels)
-    else:
-        if Ps_master.shape != np.asarray(Ps).shape or not np.allclose(Ps_master, Ps):
-            raise ValueError(f"Inconsistent Ps grid in {fpath.name}")
-        if Mrels_master.shape != np.asarray(Mrels).shape or not np.allclose(Mrels_master, Mrels):
-            raise ValueError(f"Inconsistent Mrels grid in {fpath.name}")
+    if which == 'flux_frac':
+        _fname_re = re.compile(r"^flux_fractions_T_hot=([0-9.eE+\-]+)_tau=([0-9.]+)_rho_vx_cosine_grid\.npz$")
+        line_to_Thot_to_logfrac = defaultdict(dict)
+        glob_name = "flux_fractions_T_hot=*_*_rho_vx_cosine_grid.npz"
+    elif which == 'col_den':
+        _fname_re = re.compile(r"^col_dens_T_hot=([0-9.eE+\-]+)_tau=([0-9.]+)_rho_vx_cosine_grid\.npz$")
+        ion_to_Thot_to_logcol = defaultdict(dict)
+        glob_name = "col_dens_T_hot=*_*_rho_vx_cosine_grid.npz"
 
-    for line_key, frac_arr in flux_dict.items():
-        log_frac = np.log10(frac_arr)
-        line_to_Thot_to_logfrac[eval(line_key)][T_hot] = np.asarray(log_frac)
-    available_Thot_chen23.append(T_hot)
+    available_Thot_chen23 = []
+    Ps_master = None
+    Mrels_master = None
 
-available_Thot_chen23 = sorted(set(available_Thot_chen23))
-logT_master = np.log10(np.array(available_Thot_chen23, dtype=float))
-logP_master = np.log10(Ps_master)
-Mrels_master = np.asarray(Mrels_master)
-
-# Build 3D cubes and interpolators per line
-flux_frac_interp3d = {}   # line_id -> RegularGridInterpolator over (logP, Mrel, logT)
-for line_id, Thot_map in line_to_Thot_to_logfrac.items():
-    # Ensure we have all T_hot slices; if not, clip by using nearest along T (build by nearest fill)
-    cube = np.empty((logP_master.size, Mrels_master.size, logT_master.size), dtype=float)
-
-    for k, T_hot in enumerate(available_Thot_chen23):
-        try:
-            slab = Thot_map[T_hot]
-        except KeyError:
+    for fpath in sorted(grids_dir.glob(glob_name)):
+        m = _fname_re.match(fpath.name)
+        if not m:
             continue
-        cube[:, :, k] = slab
+        data = np.load(str(fpath), allow_pickle=True)
+        if which == 'flux_frac':
+            flux_dict = data["flux"].item() 
+        elif which == 'col_den':
+            col_den_dict = data["col_den"].item() 
 
-    # Build linear interpolator on a regular grid — returns log10(frac)
-    flux_frac_interp3d[line_id] = interpolate.RegularGridInterpolator(
-        (logP_master, Mrels_master, logT_master),
-        cube,
-        method="linear",
-        bounds_error=False,   # we will clip manually to nearest edge
-        fill_value=None       # (unused because we clamp inputs)
-    )
+        Ps = data["Ps"]
+        Mrels = data["Mrels"]
+        T_hot = float(data["Thot"])
+
+        if Ps_master is None:
+            Ps_master = np.asarray(Ps)
+            Mrels_master = np.asarray(Mrels)
+        else:
+            if Ps_master.shape != np.asarray(Ps).shape or not np.allclose(Ps_master, Ps):
+                raise ValueError(f"Inconsistent Ps grid in {fpath.name}")
+            if Mrels_master.shape != np.asarray(Mrels).shape or not np.allclose(Mrels_master, Mrels):
+                raise ValueError(f"Inconsistent Mrels grid in {fpath.name}")
+
+        if which == 'flux_frac':
+            for line_key, frac_arr in flux_dict.items():
+                log_frac = np.log10(frac_arr)
+                line_to_Thot_to_logfrac[eval(line_key)][T_hot] = np.asarray(log_frac)
+        elif which == 'col_den':
+            for ion_key, col_den_arr in col_den_dict.items():
+                log_col_den = np.log10(col_den_arr)
+                ion_to_Thot_to_logcol[ion_key][T_hot] = np.asarray(log_col_den)
+
+        available_Thot_chen23.append(T_hot)
+
+    available_Thot_chen23 = sorted(set(available_Thot_chen23))
+    logT_master = np.log10(np.array(available_Thot_chen23, dtype=float))
+    logP_master = np.log10(Ps_master)
+    Mrels_master = np.asarray(Mrels_master)
+
+    # Build 3D cubes and interpolators per line
+    if which == 'flux_frac':
+        flux_frac_interp3d = {}   # line_id -> RegularGridInterpolator over (logP, Mrel, logT)
+        for line_id, Thot_map in line_to_Thot_to_logfrac.items():
+            # Ensure we have all T_hot slices; if not, clip by using nearest along T (build by nearest fill)
+            cube = np.empty((logP_master.size, Mrels_master.size, logT_master.size), dtype=float)
+
+            for k, T_hot in enumerate(available_Thot_chen23):
+                try:
+                    slab = Thot_map[T_hot]
+                except KeyError:
+                    continue
+                cube[:, :, k] = slab
+
+            # Build linear interpolator on a regular grid — returns log10(frac)
+            flux_frac_interp3d[line_id] = interpolate.RegularGridInterpolator(
+                (logP_master, Mrels_master, logT_master),
+                cube,
+                method="linear",
+                bounds_error=False,   # we will clip manually to nearest edge
+                fill_value=None       # (unused because we clamp inputs)
+            )
+        return flux_frac_interp3d, logP_master, Mrels_master, logT_master
+
+    elif which == 'col_den':
+        col_den_interp3d = {}   # ion_id -> RegularGridInterpolator over (logP, Mrel, logT)
+        for ion_id, Thot_map in ion_to_Thot_to_logcol.items():
+            # Ensure we have all T_hot slices; if not, clip by using nearest along T (build by nearest fill)
+            cube = np.empty((logP_master.size, Mrels_master.size, logT_master.size), dtype=float)
+
+            for k, T_hot in enumerate(available_Thot_chen23):
+                try:
+                    slab = Thot_map[T_hot]
+                except KeyError:
+                    continue
+                cube[:, :, k] = slab
+
+            # Build linear interpolator on a regular grid — returns log10(frac)
+            col_den_interp3d[ion_id] = interpolate.RegularGridInterpolator(
+                (logP_master, Mrels_master, logT_master),
+                cube,
+                method="nearest",
+                bounds_error=False,   # we will clip manually to nearest edge
+                fill_value=None       # (unused because we clamp inputs)
+            )
+        return col_den_interp3d, logP_master, Mrels_master, logT_master
+
+if which_run == 'SB':
+    flux_frac_interp3d, logP_master, Mrels_master, logT_master = return_interp3d(which = 'flux_frac')
+elif which_run == 'CD':
+    col_den_interp3d, logP_master, Mrels_master, logT_master = return_interp3d(which = 'col_den')
 
 # Helpers to evaluate with nearest-edge behavior outside the grid
-def _clip_to_grid(logP, Mrel, logT):
+def _clip_to_grid(logP, Mrel, logT, logP_master, Mrels_master, logT_master):
     lp = np.clip(np.asarray(logP), logP_master.min(), logP_master.max())
     mr = np.clip(np.asarray(Mrel), Mrels_master.min(), Mrels_master.max())
     lt = np.clip(np.asarray(logT), logT_master.min(), logT_master.max())
@@ -674,7 +759,18 @@ def eval_flux_frac_log(line_id, logP, Mrel, logT_hot):
     if line_id not in flux_frac_interp3d:
         raise KeyError(f"Line key not found in TRML flux fractions: {line_id!r}")
     interp = flux_frac_interp3d[line_id]
-    pts = _clip_to_grid(logP, Mrel, logT_hot)
+    pts = _clip_to_grid(logP, Mrel, logT_hot, logP_master, Mrels_master, logT_master)
+    return interp(pts)
+
+def eval_col_den_log(ion_id, logP, Mrel, logT_hot):
+    """
+    Evaluate log10(column density) at (logP, Mrel,logT_hot).
+    Inputs outside the tabulated ranges are clipped to nearest grid values.
+    """
+    if ion_id not in col_den_interp3d:
+        raise KeyError(f"Ion key not found in TRML column densities: {ion_id!r}")
+    interp = col_den_interp3d[ion_id]
+    pts = _clip_to_grid(logP, Mrel, logT_hot, logP_master, Mrels_master, logT_master)
     return interp(pts)
 
 """
