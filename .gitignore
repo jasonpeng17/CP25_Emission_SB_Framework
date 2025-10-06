@@ -10,6 +10,7 @@ logs/
 # Output directories or files
 fb22_model_outputs/
 sb_model_outputs/
+cd_model_outputs/
 winterphase/trml_scripts/result_plots_*/
 winterphase/trml_scripts/flux_fraction_dicts_*/
 winterphase/trml_scripts/flux_fraction_plots_*/

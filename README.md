@@ -176,7 +176,7 @@ Beyond generating wind solutions and emission-line SB profiles, this repository 
 ## Citation
 
 If you use this code, please cite:  
-- Chen & Peng et al. (2025, in prep.)
+- [Chen & Peng et al. (2025)](https://ui.adsabs.harvard.edu/abs/2025arXiv251002443C/abstract)
 - [Peng et al. (2025)](https://ui.adsabs.harvard.edu/abs/2025ApJ...981..171P/abstract)  
 - [Chen et al. (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...950...91C/abstract)  
 
