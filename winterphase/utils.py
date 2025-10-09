@@ -730,7 +730,7 @@ def return_interp3d(which = 'flux_frac'):
             col_den_interp3d[ion_id] = interpolate.RegularGridInterpolator(
                 (logP_master, Mrels_master, logT_master),
                 cube,
-                method="nearest",
+                method="linear",
                 bounds_error=False,   # we will clip manually to nearest edge
                 fill_value=None       # (unused because we clamp inputs)
             )
@@ -820,34 +820,33 @@ log_heating_curve_func2d = interpolate.RegularGridInterpolator((temperature_bin_
 Cooling emissivity as a function of density, temperature, metallicity (Ploeckinger & Schaye 2020) 
 """
 # ploeckinger & shaye 2020 cooling table for lines
-table_dust1_CR1_G1_shield1_lines = PARENT / "ps20_grids/UVB_dust1_CR1_G1_shield1_lines.hdf5"
-# define the IDs for different lines
-with h5py.File(table_dust1_CR1_G1_shield1_lines, 'r') as f:
-    line_IDs = f['IdentifierLines'][:] # list of emission line ids
-    # List all groups
-    table_bins_dust1_CR1_G1_shield1_lines = f['TableBins']
-    density_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['DensityBins'][:]
-    temperature_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['TemperatureBins'][:]
-    metallicity_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['MetallicityBins'][:]
-    redshift_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['RedshiftBins'][:]
-    # emissivities for different lines
-    emissivities_vol = f['Tdep']['EmissivitiesVol'][:] # emissivity at the last CLOUDY zone
-    emissivities_col = f['Tdep']['EmissivitiesCol'][:] # average emissivity of the shielding column
-# emission line ids based on PS20 (should be consistent with the available lines in your chen23 flux fraction grids)
-emission_line_ids = [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6300.30A', b'S  2      4068.60A', b'Si 3      1206.50A', 
-                     b'O  2      3726.03A', b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', 
-                     b'O  3      4363.21A', b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
-emission_line_indexes = {}
-emissivity_grids = {}
-for line_id in emission_line_ids:
-    index = np.where(np.array(line_IDs == line_id))[0][0]
-    emission_line_indexes[line_id] = index
-    # for zero redshift z = 0
-    emissivity_grid = interpolate.RegularGridInterpolator((temperature_bin_dust1_CR1_G1_shield1_lines, metallicity_bin_dust1_CR1_G1_shield1_lines, density_bin_dust1_CR1_G1_shield1_lines),
-                                                           emissivities_vol[np.where(redshift_bin_dust1_CR1_G1_shield1_lines == 0.0)[0][0], :, 
-                                                                            :, :, index],
-                                                           bounds_error=False, fill_value=-1e-30)
-    emissivity_grids[line_id] = emissivity_grid
+if which_run == 'SB':
+    table_dust1_CR1_G1_shield1_lines = PARENT / "ps20_grids/UVB_dust1_CR1_G1_shield1_lines.hdf5"
+    # define the IDs for different lines
+    with h5py.File(table_dust1_CR1_G1_shield1_lines, 'r') as f:
+        line_IDs = f['IdentifierLines'][:] # list of emission line ids
+        # List all groups
+        table_bins_dust1_CR1_G1_shield1_lines = f['TableBins']
+        density_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['DensityBins'][:]
+        temperature_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['TemperatureBins'][:]
+        metallicity_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['MetallicityBins'][:]
+        redshift_bin_dust1_CR1_G1_shield1_lines = table_bins_dust1_CR1_G1_shield1_lines['RedshiftBins'][:]
+        # emissivities for different lines
+        emissivities_vol = f['Tdep']['EmissivitiesVol'][:] # emissivity at the last CLOUDY zone
+        emissivities_col = f['Tdep']['EmissivitiesCol'][:] # average emissivity of the shielding column
+    # emission line ids based on PS20 (should be consistent with the available lines in your chen23 flux fraction grids)
+    emission_line_ids = list(flux_frac_interp3d.keys())
+    emission_line_indexes = {}
+    emissivity_grids = {}
+    for line_id in emission_line_ids:
+        index = np.where(np.array(line_IDs == line_id))[0][0]
+        emission_line_indexes[line_id] = index
+        # for zero redshift z = 0
+        emissivity_grid = interpolate.RegularGridInterpolator((temperature_bin_dust1_CR1_G1_shield1_lines, metallicity_bin_dust1_CR1_G1_shield1_lines, density_bin_dust1_CR1_G1_shield1_lines),
+                                                               emissivities_vol[np.where(redshift_bin_dust1_CR1_G1_shield1_lines == 0.0)[0][0], :, 
+                                                                                :, :, index],
+                                                               bounds_error=False, fill_value=-1e-30)
+        emissivity_grids[line_id] = emissivity_grid
 
 
 """

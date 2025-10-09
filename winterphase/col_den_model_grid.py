@@ -126,8 +126,8 @@ def calc_column_density_at_b(b_eval, xi, R, etaE, etaM, etaM_cold, log_Mcl, v_c,
             return col_den * f_cl
 
     L_max = np.sqrt(R_max_Tmask**2 - b_eval**2)
-    cd_mix, _ = quad(lambda l: cd_integrand(l, 'mix'), 0.0, L_max)
-    cd_hot, _ = quad(lambda l: cd_integrand(l, 'hot'), 0.0, L_max)
+    cd_mix, _ = quad(lambda l: cd_integrand(l, 'mix'), 0.0, L_max, points=[0.0])
+    cd_hot, _ = quad(lambda l: cd_integrand(l, 'hot'), 0.0, L_max, points=[0.0])
     cd = cd_mix + cd_hot
 
     return 2 * cd
@@ -139,14 +139,6 @@ if __name__ == "__main__":
     # initialize the SB profile
     R_eval_arr = R_eval_arr * r_sonic
     R_eval_arr_kpc = R_eval_arr / kpc
-    shell_dr = np.diff(R_eval_arr, prepend=0)
-    shell_dr_kpc = shell_dr / kpc
-    # define the mid-point radius array
-    R_eval_mid_arr = (R_eval_arr[1:] + R_eval_arr[:-1]) / 2. 
-    R_eval_mid_arr_kpc = R_eval_mid_arr / kpc 
-    # define the radius difference array
-    R_eval_diff_arr = np.diff(R_eval_arr)
-    R_eval_diff_arr_kpc = R_eval_diff_arr / kpc
 
     # define the ion fractions for the ions of interest
     IonFractions = {}
@@ -179,7 +171,7 @@ if __name__ == "__main__":
 
         # define the evaluated radius (starting from R_SF to R_max)
         col_den_ions = dict()
-        col_den_ions['r_kpc'] = R_eval_arr_kpc
+        col_den_ions['b_kpc'] = R_eval_arr_kpc
 
         for elem in ions_of_interest: # loop over each element
             for ion_indx in range(len(ions_of_interest[elem])): # loop over each ion number
