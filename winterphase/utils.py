@@ -737,10 +737,9 @@ with h5py.File(table_dust1_CR1_G1_shield1_lines, 'r') as f:
     # emissivities for different lines
     emissivities_vol = f['Tdep']['EmissivitiesVol'][:] # emissivity at the last CLOUDY zone
     emissivities_col = f['Tdep']['EmissivitiesCol'][:] # average emissivity of the shielding column
+    
 # emission line ids based on PS20 (should be consistent with the available lines in your chen23 flux fraction grids)
-emission_line_ids = [b'H  1      6562.81A', b'H  1      4861.33A', b'O  1      6300.30A', b'S  2      4068.60A', b'Si 3      1206.50A', 
-                     b'O  2      3726.03A', b'O  2      3728.81A', b'Blnd      1397.00A', b'O  3      5006.84A', b'O  3      4958.91A', 
-                     b'O  3      4363.21A', b'Blnd      1549.00A', b'O  6      1031.91A', b'O  6      1037.62A', b'N  2      6583.45A']
+emission_line_ids = list(flux_frac_interp3d.keys())
 emission_line_indexes = {}
 emissivity_grids = {}
 for line_id in emission_line_ids:
